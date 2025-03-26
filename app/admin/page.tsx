@@ -192,25 +192,30 @@ export default function AdminDashboard() {
     return unsubscribe;
   };
 
-  // Send a message to a ticket
   const sendAdminMessage = async (ticketId: string, content: string) => {
     if (!user?.email || !content.trim()) return;
     
     try {
       const ticketRef = doc(db, 'tickets', ticketId);
-      const now = serverTimestamp();
+      
+      // Create a regular timestamp for the message in the array
+      const now = new Date();
+      const firestoreTimestamp = {
+        seconds: Math.floor(now.getTime() / 1000),
+        nanoseconds: now.getMilliseconds() * 1000000
+      };
       
       const newMessage = {
         sender: user.email,
         content,
-        timestamp: now,
+        timestamp: firestoreTimestamp, // Use regular timestamp object instead of serverTimestamp()
         isAdmin: true
       };
       
       // Add the new message to the messages array
       await updateDoc(ticketRef, {
         messages: [...(selectedTicket?.messages || []), newMessage],
-        lastUpdate: now
+        lastUpdate: serverTimestamp() // This is fine outside arrays
       });
       
       // Clear the input field
@@ -222,7 +227,6 @@ export default function AdminDashboard() {
       alert('Failed to send message. Please try again.');
     }
   };
-
   // Update ticket status (open/closed)
   const updateTicketStatus = async (ticketId: string, status: 'open' | 'closed') => {
     try {
