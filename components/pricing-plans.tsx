@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { Check, X } from 'lucide-react'
-import { TransitionLink } from './page-transition'
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Check, X, ChevronDown, Zap, Shield, Users, Download, Star } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/context/AuthContext'
 
 interface PlanFeature {
   name: string;
@@ -22,213 +22,477 @@ interface Plan {
   color: string;
 }
 
+interface AuthContextType {
+  user: {
+    email?: string;
+  } | null;
+  logout: () => void;
+}
+
 const PricingPlans = () => {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
+  const [mounted, setMounted] = useState(false)
+  const { user } = useAuth() as AuthContextType;
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   const plans: Plan[] = [
     {
       name: "Basic",
-      description: "Ιδανικό για μικρές επιχειρήσεις",
+      description: "Ideal for small businesses",
       monthlyPrice: 49,
       yearlyPrice: 490,
       features: [
-        { name: "Έως 2 χρήστες", included: true },
-        { name: "Βασικά εργαλεία διαχείρισης FTTH", included: true },
-        { name: "Απεριόριστα έργα", included: true },
-        { name: "Βασικό dashboard", included: true },
-        { name: "Email υποστήριξη", included: true },
-        { name: "AI προτάσεις", included: false },
-        { name: "API πρόσβαση", included: false },
-        { name: "Προηγμένα analytics", included: false },
+        { name: "Up to 2 users", included: true },
+        { name: "Basic FTTH management tools", included: true },
+        { name: "Unlimited projects", included: true },
+        { name: "Basic dashboard", included: true },
+        { name: "Email support", included: true },
+        { name: "AI recommendations", included: false },
+        { name: "API access", included: false },
+        { name: "Advanced analytics", included: false },
       ],
-      cta: "Ξεκινήστε τώρα",
+      cta: "Get Started",
       popular: false,
       color: "blue-400"
     },
     {
       name: "Pro",
-      description: "Για επιχειρήσεις σε ανάπτυξη",
+      description: "For growing businesses",
       monthlyPrice: 99,
       yearlyPrice: 990,
       features: [
-        { name: "Έως 10 χρήστες", included: true },
-        { name: "Προηγμένα εργαλεία διαχείρισης", included: true },
-        { name: "Απεριόριστα έργα", included: true },
-        { name: "Προηγμένο dashboard", included: true },
-        { name: "Τηλεφωνική υποστήριξη", included: true },
-        { name: "AI προτάσεις", included: true },
-        { name: "API πρόσβαση", included: true },
-        { name: "Βασικά analytics", included: true },
+        { name: "Up to 10 users", included: true },
+        { name: "Advanced management tools", included: true },
+        { name: "Unlimited projects", included: true },
+        { name: "Advanced dashboard", included: true },
+        { name: "Phone support", included: true },
+        { name: "AI recommendations", included: true },
+        { name: "API access", included: true },
+        { name: "Basic analytics", included: true },
       ],
-      cta: "Επιλέξτε Pro",
+      cta: "Choose Pro",
       popular: true,
       color: "blue-500"
     },
     {
       name: "Enterprise",
-      description: "Για μεγάλες εταιρείες",
+      description: "For large companies",
       monthlyPrice: 249,
       yearlyPrice: 2490,
       features: [
-        { name: "Απεριόριστοι χρήστες", included: true },
-        { name: "Πλήρη εργαλεία διαχείρισης", included: true },
-        { name: "Απεριόριστα έργα", included: true },
+        { name: "Unlimited users", included: true },
+        { name: "Complete management tools", included: true },
+        { name: "Unlimited projects", included: true },
         { name: "Custom dashboard", included: true },
-        { name: "Dedicated υποστήριξη 24/7", included: true },
-        { name: "AI προτάσεις & αυτοματισμοί", included: true },
+        { name: "Dedicated 24/7 support", included: true },
+        { name: "AI recommendations & automation", included: true },
         { name: "Advanced API", included: true },
-        { name: "Προηγμένα analytics", included: true },
+        { name: "Advanced analytics", included: true },
       ],
-      cta: "Επικοινωνήστε μαζί μας",
+      cta: "Contact Us",
       popular: false,
       color: "blue-600"
     }
   ]
   
-  const fadeIn = {
+  const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
   }
+
+  const pulseGlow = {
+    pulse: {
+      boxShadow: [
+        "0px 0px 0px rgba(59, 130, 246, 0)",
+        "0px 0px 25px rgba(59, 130, 246, 0.5)",
+        "0px 0px 0px rgba(59, 130, 246, 0)"
+      ],
+      transition: {
+        repeat: Infinity,
+        duration: 3,
+      }
+    }
+  }
   
   return (
-    <section id="pricing" className="py-24 bg-black">
-      <div className="container mx-auto px-6">
+    <section id="pricing" className="py-24 bg-black relative overflow-hidden">
+      {/* Background gradient effect */}
+      <div className="absolute inset-0 bg-gradient-to-b from-gray-950 to-black opacity-80"></div>
+      
+      {/* Star field background effect - similar to the main page */}
+      {mounted && (
+        <div className="absolute inset-0 overflow-hidden">
+          {[...Array(100)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute h-0.5 w-0.5 rounded-full bg-blue-100"
+              style={{
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                scale: Math.random() * 1.5,
+              }}
+              animate={{
+                opacity: [0, 0.7, 0],
+                scale: [0, Math.random() * 2, 0],
+              }}
+              transition={{
+                repeat: Infinity,
+                duration: Math.random() * 4 + 3,
+                delay: Math.random() * 5,
+                ease: "easeInOut"
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="container mx-auto px-6 relative z-10">
         <motion.div 
           className="text-center mb-16"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.8 }}
         >
-          <h2 className="text-3xl md:text-4xl font-light mb-4">Επιλέξτε το Πλάνο που Ταιριάζει στις Ανάγκες σας</h2>
-          <p className="text-gray-400 max-w-3xl mx-auto mb-8">
-            Ευέλικτα πλάνα σχεδιασμένα για να καλύψουν τις ανάγκες κάθε επιχείρησης, από μικρές εταιρείες έως μεγάλους παρόχους τηλεπικοινωνιών.
+          <h2 className="text-4xl md:text-5xl font-light mb-6 tracking-wide">
+            Choose the Plan That <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600">Fits Your Needs</span>
+          </h2>
+          <p className="text-lg text-gray-400 max-w-3xl mx-auto mb-12">
+            Flexible plans designed to meet the needs of every business, from small companies to large telecommunications providers.
           </p>
           
-          <div className="inline-flex items-center p-1 bg-gray-900 rounded-full mb-8 relative">
+          <motion.div 
+            className="inline-flex items-center p-1.5 bg-gray-900/50 rounded-full mb-12 relative backdrop-blur-sm border border-gray-800/50"
+            whileHover={{ scale: 1.02, boxShadow: "0px 0px 20px rgba(59, 130, 246, 0.2)" }}
+            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+          >
             <motion.div
-              className="absolute top-1 bottom-1 bg-blue-500 rounded-full"
+              className="absolute top-1.5 bottom-1.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full"
               initial={false}
               animate={{
-                left: billingPeriod === 'monthly' ? '0.25rem' : '50%',
-                right: billingPeriod === 'monthly' ? '50%' : '0.25rem',
+                left: billingPeriod === 'monthly' ? '0.375rem' : '50%',
+                right: billingPeriod === 'monthly' ? '50%' : '0.375rem',
               }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             />
-            <button 
-              className={`px-4 py-2 rounded-full text-sm transition-all duration-300 relative z-10 ${
-                billingPeriod === 'monthly' ? 'text-white' : 'text-gray-400'
+            <motion.button 
+              className={`px-6 py-2.5 rounded-full text-sm uppercase tracking-wider transition-all duration-300 relative z-10 ${
+                billingPeriod === 'monthly' ? 'text-white font-medium' : 'text-gray-400'
               }`}
               onClick={() => setBillingPeriod('monthly')}
+              whileTap={{ scale: 0.95 }}
             >
-              Μηνιαία Χρέωση
-            </button>
-            <button 
-              className={`px-4 py-2 rounded-full text-sm transition-all duration-300 relative z-10 ${
-                billingPeriod === 'yearly' ? 'text-white' : 'text-gray-400'
+              Monthly Billing
+            </motion.button>
+            <motion.button 
+              className={`px-6 py-2.5 rounded-full text-sm uppercase tracking-wider transition-all duration-300 relative z-10 ${
+                billingPeriod === 'yearly' ? 'text-white font-medium' : 'text-gray-400'
               }`}
               onClick={() => setBillingPeriod('yearly')}
+              whileTap={{ scale: 0.95 }}
             >
-              Ετήσια Χρέωση <span className="text-xs text-emerald-400 ml-1">-17%</span>
-            </button>
-          </div>
+              Annual Billing <span className="text-xs bg-emerald-500/20 text-emerald-400 ml-1 px-1.5 py-0.5 rounded-full">-17%</span>
+            </motion.button>
+          </motion.div>
         </motion.div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {plans.map((plan, index) => (
             <motion.div 
               key={plan.name}
-              className={`relative rounded-2xl overflow-hidden border ${plan.popular ? 'border-blue-500' : 'border-gray-800'} bg-gray-900/50 backdrop-blur-sm transition-all duration-300`}
+              className={`relative rounded-2xl overflow-hidden ${
+                plan.popular ? 'border-2 border-blue-500/50' : 'border border-gray-800/50'
+              } bg-gray-900/40 backdrop-blur-sm transition-all duration-300 z-10`}
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1, duration: 0.5 }}
               whileHover={{ 
                 y: -10,
-                boxShadow: plan.popular ? `0 10px 30px -5px rgba(59, 130, 246, 0.5)` : `0 10px 30px -15px rgba(255, 255, 255, 0.1)`
+                boxShadow: plan.popular 
+                  ? `0 10px 40px -5px rgba(59, 130, 246, 0.5)` 
+                  : `0 10px 30px -15px rgba(255, 255, 255, 0.1)`
               }}
+              variants={plan.popular ? pulseGlow : {}}
+              animate={plan.popular ? "pulse" : ""}
             >
               {plan.popular && (
-                <div className="absolute top-0 left-0 right-0 bg-blue-500 text-white text-xs font-medium py-1 text-center">
-                  Δημοφιλές Πλάνο
-                </div>
+                <motion.div 
+                  className="absolute top-0 left-0 right-0 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-medium py-2 text-center"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <div className="flex items-center justify-center">
+                    <Star className="w-3.5 h-3.5 mr-1.5 fill-current" />
+                    Most Popular
+                    <Star className="w-3.5 h-3.5 ml-1.5 fill-current" />
+                  </div>
+                </motion.div>
               )}
               
-              <div className="p-8">
-                <h3 className={`text-2xl font-light mb-2 text-${plan.color}`}>{plan.name}</h3>
-                <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
+              <div className={`p-8 ${plan.popular ? 'pt-12' : ''}`}>
+                <motion.div 
+                  className="flex items-center justify-between mb-3"
+                  variants={fadeInUp}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                >
+                  <h3 className={`text-2xl font-light text-${plan.color}`}>
+                    {plan.name}
+                  </h3>
+                  {plan.popular && (
+                    <motion.div
+                      animate={{ 
+                        scale: [1, 1.05, 1],
+                        opacity: [0.8, 1, 0.8]
+                      }}
+                      transition={{ 
+                        repeat: Infinity, 
+                        duration: 2,
+                      }}
+                      className="bg-blue-500/20 rounded-full px-2 py-0.5 text-xs text-blue-300"
+                    >
+                      Recommended
+                    </motion.div>
+                  )}
+                </motion.div>
                 
-                <div className="mb-6">
-                  <div className="text-3xl font-light">
-                    {billingPeriod === 'monthly' ? (
-                      <>
-                        <span className="text-white">{plan.monthlyPrice}€</span>
-                        <span className="text-gray-500 text-lg"> / μήνα</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-white">{plan.yearlyPrice}€</span>
-                        <span className="text-gray-500 text-lg"> / έτος</span>
-                      </>
-                    )}
-                  </div>
-                </div>
+                <motion.p 
+                  className="text-gray-400 text-sm mb-8"
+                  variants={fadeInUp}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.1 }}
+                >
+                  {plan.description}
+                </motion.p>
                 
-                <ul className="space-y-3 mb-8">
+                <motion.div 
+                  className="mb-8"
+                  variants={fadeInUp}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <AnimatePresence mode="wait">
+                    <motion.div 
+                      key={billingPeriod}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex flex-col items-center"
+                    >
+                      <motion.div 
+                        className="text-4xl font-light flex items-baseline"
+                        animate={plan.popular ? {
+                          textShadow: [
+                            "0px 0px 0px rgba(255, 255, 255, 0)",
+                            "0px 0px 10px rgba(59, 130, 246, 0.5)",
+                            "0px 0px 0px rgba(255, 255, 255, 0)"
+                          ]
+                        } : {}}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                      >
+                        <span className="text-2xl mr-0.5">$</span>
+                        <span className="text-white">{billingPeriod === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice}</span>
+                        <span className="text-gray-500 text-lg ml-1">
+                          {billingPeriod === 'monthly' ? '/ month' : '/ year'}
+                        </span>
+                      </motion.div>
+                      
+                      {billingPeriod === 'yearly' && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-xs text-emerald-400 mt-2"
+                        >
+                          Save ${plan.monthlyPrice * 12 - plan.yearlyPrice} per year
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+                </motion.div>
+                
+                {/* Feature highlights with icon row */}
+                <motion.div 
+                  className="flex justify-center gap-8 mb-8"
+                  variants={fadeInUp}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.25 }}
+                >
+                  <motion.div 
+                    className="text-center"
+                    whileHover={{ y: -5, scale: 1.1 }}
+                  >
+                    <motion.div 
+                      className={`w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-2 ${plan.popular ? 'border border-blue-500/30' : ''}`}
+                      animate={{ 
+                        boxShadow: plan.popular ? 
+                          ["0px 0px 0px rgba(59, 130, 246, 0)", "0px 0px 15px rgba(59, 130, 246, 0.3)", "0px 0px 0px rgba(59, 130, 246, 0)"] :
+                          "none"
+                      }}
+                      transition={{ repeat: Infinity, duration: 3 }}
+                    >
+                      <Users className="w-5 h-5 text-blue-400" />
+                    </motion.div>
+                    <span className="text-xs text-gray-400">{plan.name === "Basic" ? "2" : plan.name === "Pro" ? "10" : "∞"}</span>
+                  </motion.div>
+                  
+                  <motion.div 
+                    className="text-center"
+                    whileHover={{ y: -5, scale: 1.1 }}
+                  >
+                    <motion.div 
+                      className={`w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-2 ${plan.popular ? 'border border-blue-500/30' : ''}`}
+                      animate={{ 
+                        boxShadow: plan.popular ? 
+                          ["0px 0px 0px rgba(59, 130, 246, 0)", "0px 0px 15px rgba(59, 130, 246, 0.3)", "0px 0px 0px rgba(59, 130, 246, 0)"] :
+                          "none"
+                      }}
+                      transition={{ repeat: Infinity, duration: 3, delay: 0.5 }}
+                    >
+                      <Zap className="w-5 h-5 text-blue-400" />
+                    </motion.div>
+                    <span className="text-xs text-gray-400">{plan.name === "Basic" ? "Basic" : plan.name === "Pro" ? "Fast" : "Ultra"}</span>
+                  </motion.div>
+                  
+                  <motion.div 
+                    className="text-center"
+                    whileHover={{ y: -5, scale: 1.1 }}
+                  >
+                    <motion.div 
+                      className={`w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-2 ${plan.popular ? 'border border-blue-500/30' : ''}`}
+                      animate={{ 
+                        boxShadow: plan.popular ? 
+                          ["0px 0px 0px rgba(59, 130, 246, 0)", "0px 0px 15px rgba(59, 130, 246, 0.3)", "0px 0px 0px rgba(59, 130, 246, 0)"] :
+                          "none"
+                      }}
+                      transition={{ repeat: Infinity, duration: 3, delay: 1 }}
+                    >
+                      <Shield className="w-5 h-5 text-blue-400" />
+                    </motion.div>
+                    <span className="text-xs text-gray-400">{plan.name === "Basic" ? "Email" : plan.name === "Pro" ? "Phone" : "24/7"}</span>
+                  </motion.div>
+                </motion.div>
+
+                {/* Feature list */}
+                <div className="space-y-3 mb-8">
                   {plan.features.map((feature, i) => (
-                    <motion.li 
+                    <motion.div 
                       key={i} 
-                      className="flex items-start"
-                      variants={fadeIn}
+                      className="flex items-start group"
+                      variants={fadeInUp}
                       initial="hidden"
                       whileInView="visible"
                       viewport={{ once: true }}
-                      transition={{ delay: 0.1 + (i * 0.05) }}
+                      transition={{ delay: 0.3 + (i * 0.05) }}
+                      whileHover={{ x: 3 }}
                     >
-                      {feature.included ? (
-                        <Check className="h-5 w-5 text-emerald-500 mt-0.5 mr-2 flex-shrink-0" />
-                      ) : (
-                        <X className="h-5 w-5 text-gray-600 mt-0.5 mr-2 flex-shrink-0" />
-                      )}
-                      <span className={feature.included ? "text-gray-300" : "text-gray-500"}>
+                      <div className={`flex-shrink-0 w-5 h-5 mr-3 mt-0.5 rounded-full flex items-center justify-center ${
+                        feature.included 
+                          ? 'bg-emerald-500/20 text-emerald-500' 
+                          : 'bg-gray-800/50 text-gray-600'
+                      }`}>
+                        {feature.included ? (
+                          <Check className="h-3 w-3" />
+                        ) : (
+                          <X className="h-3 w-3" />
+                        )}
+                      </div>
+                      <span className={`${feature.included ? 'text-gray-300' : 'text-gray-500'} group-hover:text-white transition-colors duration-200`}>
                         {feature.name}
                       </span>
-                    </motion.li>
+                    </motion.div>
                   ))}
-                </ul>
+                </div>
                 
-                <TransitionLink href="/apply" className="block">
-                  <motion.button
-                    className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-300 ${
+                {/* CTA Button */}
+                <Link href={user ? "/dashboard" : "/apply"}>
+                  <motion.div 
+                    className={`w-full py-3.5 px-6 rounded-lg font-medium transition-all duration-300 flex items-center justify-center ${
                       plan.popular 
-                        ? 'bg-blue-500 hover:bg-blue-600 text-white' 
-                        : 'bg-gray-800 hover:bg-gray-700 text-white'
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white' 
+                        : 'bg-gray-800 hover:bg-gray-700 text-white border border-gray-700/50'
                     }`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                    whileHover={{ 
+                      scale: 1.03,
+                      boxShadow: plan.popular ? "0px 5px 15px rgba(59, 130, 246, 0.4)" : "none"
+                    }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
                   >
-                    {plan.cta}
-                  </motion.button>
-                </TransitionLink>
+                    <span>{plan.cta}</span>
+                    <motion.div
+                      animate={{ 
+                        y: [0, 3, 0], 
+                        opacity: [0.7, 1, 0.7] 
+                      }}
+                      transition={{ 
+                        repeat: Infinity, 
+                        duration: 1.5, 
+                        ease: "easeInOut" 
+                      }}
+                      className="ml-2"
+                    >
+                      <Download className="h-4 w-4 text-white/70" />
+                    </motion.div>
+                  </motion.div>
+                </Link>
+                
+                {/* Free trial badge */}
+                {plan.popular && (
+                  <motion.div 
+                    className="mt-4 text-xs flex items-center justify-center"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    <span className="bg-gradient-to-r from-emerald-500/10 to-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20">
+                      14-Day Free Trial
+                    </span>
+                  </motion.div>
+                )}
               </div>
             </motion.div>
           ))}
         </div>
         
+        {/* Custom plan CTA */}
         <motion.div 
           className="mt-16 text-center"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.5, duration: 0.8 }}
         >
-          {/* Αντικατάσταση του <p> με <div> για να αποφύγουμε το πρόβλημα nesting */}
-          <div className="text-gray-400">
-            Χρειάζεστε ένα προσαρμοσμένο πλάνο για συγκεκριμένες ανάγκες;{" "}
-            {/* Αντικατάσταση του custom TransitionLink με απλό <a> */}
-            <a href="/contact" className="text-blue-400 hover:text-blue-300 underline">
-              Επικοινωνήστε μαζί μας
-            </a>.
+          <div className="inline-block bg-gray-900/30 backdrop-blur-sm px-8 py-5 rounded-xl border border-gray-800/50">
+            <div className="text-lg text-gray-300 flex flex-col md:flex-row items-center gap-4">
+              <span>Need a custom plan for specific requirements?</span>
+              <Link href="/contact">
+                <motion.div 
+                  className="text-blue-400 hover:text-blue-300 inline-flex items-center gap-2 bg-blue-500/10 px-4 py-2 rounded-lg"
+                  whileHover={{ 
+                    scale: 1.05, 
+                    x: 5,
+                    boxShadow: "0px 0px 15px rgba(59, 130, 246, 0.3)"
+                  }}
+                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                >
+                  <span>Contact us</span>
+                  <ChevronDown className="h-4 w-4 rotate-270 transform" />
+                </motion.div>
+              </Link>
+            </div>
           </div>
         </motion.div>
       </div>

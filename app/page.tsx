@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, User, LogOut, Zap, Clock, Database, Calendar, FileCode } from "lucide-react"
 import Link from "next/link"
-import { TransitionLink } from "@/components/page-transition"
 import MainMenu from "@/components/main-menu"
 import { motion, useAnimation, useSpring, useMotionValue, useTransform } from "framer-motion"
 import FuturisticLights from "@/components/futuristic-lights"
@@ -12,8 +11,25 @@ import OpticalFiberAnimation from "@/components/optical-fiber-animation"
 import CookieConsent from "@/components/cookie-consent"
 import { PageTransitionWrapper } from "@/components/page-transition"
 import PricingPlans from "@/components/pricing-plans"
+import { useAuth } from "@/context/AuthContext"
 
-// Interactive Gravity Element component 
+// Type definitions
+interface UserType {
+  email?: string;
+  // Add other user properties as needed
+}
+
+interface AuthContextType {
+  user: UserType | null;
+  logout: () => void;
+}
+
+interface UserMenuProps {
+  user: UserType | null;
+  logout: () => void;
+}
+
+// Interactive Gravity Element component with Starry FieldX Animation
 const GravityElement = () => {
   const constraintsRef = useRef(null)
   const x = useMotionValue(0)
@@ -40,6 +56,53 @@ const GravityElement = () => {
     <motion.div ref={constraintsRef} className="gravity-container w-full flex items-center justify-center">
       {mounted && (
         <div className="relative flex items-center justify-center">
+          {/* Starry FieldX Animation */}
+          <motion.div
+            className="absolute"
+            initial={{ opacity: 0 }}
+            animate={{ 
+              opacity: [0, 0.7, 0.4, 0.7, 0],
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 10,
+              ease: "easeInOut",
+              times: [0, 0.3, 0.5, 0.7, 1]
+            }}
+          >
+            <div className="relative">
+              <div className="text-9xl md:text-[10rem] font-light tracking-wide select-none text-transparent bg-clip-text bg-gradient-to-r from-blue-100/20 to-blue-300/20 opacity-30 relative z-10">
+                Field<span className="font-normal">X</span>
+              </div>
+              
+              {/* Star particles effect */}
+              <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+                {[...Array(150)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute h-0.5 w-0.5 rounded-full bg-blue-100"
+                    style={{
+                      top: `${Math.random() * 100}%`,
+                      left: `${Math.random() * 100}%`,
+                      scale: Math.random() * 1.5,
+                    }}
+                    animate={{
+                      opacity: [0, 0.7, 0],
+                      scale: [0, Math.random() * 2, 0],
+                    }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: Math.random() * 4 + 3,
+                      delay: Math.random() * 5,
+                      ease: "easeInOut"
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Original draggable FieldX logo */}
           <motion.div 
             className="gravity-element flex items-center justify-center pointer-events-auto cursor-grab relative"
             style={{ x: springX, y: springY }}
@@ -93,10 +156,89 @@ const GravityElement = () => {
   )
 }
 
+// User Menu Dropdown Component (without user image)
+const UserMenu = ({ user, logout }: UserMenuProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <div className="relative">
+      <motion.button 
+        className="flex items-center space-x-2 text-sm text-gray-800"
+        onClick={() => setIsOpen(!isOpen)}
+        whileHover={{ scale: 1.05 }}
+        transition={{ type: "spring", stiffness: 400, damping: 10 }}
+      >
+        <span className="hidden md:inline-block">{user?.email?.split('@')[0] || 'User'}</span>
+        <ChevronDown className="h-4 w-4" />
+      </motion.button>
+      
+      {isOpen && (
+        <motion.div 
+          className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 text-gray-800"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <Link href="/dashboard">
+            <motion.div 
+              className="block px-4 py-2 text-sm hover:bg-gray-100 flex items-center"
+              whileHover={{ x: 5 }}
+            >
+              <User size={16} className="mr-2" />
+              Dashboard
+            </motion.div>
+          </Link>
+          <motion.div 
+            className="block px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer flex items-center"
+            onClick={logout}
+            whileHover={{ x: 5 }}
+          >
+            <LogOut size={16} className="mr-2" />
+            Log Out
+          </motion.div>
+        </motion.div>
+      )}
+    </div>
+  );
+};
+
+// Feature Card Component
+const FeatureCard = ({ icon: Icon, title, description, delay = 0 }) => {
+  return (
+    <motion.div
+      className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-6 flex flex-col items-center"
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6, delay }}
+      whileHover={{ y: -10, boxShadow: "0 10px 30px -15px rgba(59, 130, 246, 0.3)" }}
+    >
+      <motion.div 
+        className="w-16 h-16 mb-6 rounded-full bg-blue-500/10 flex items-center justify-center"
+        whileHover={{ scale: 1.1, backgroundColor: "rgba(59, 130, 246, 0.2)" }}
+        animate={{ 
+          boxShadow: ["0px 0px 0px rgba(59, 130, 246, 0)", "0px 0px 20px rgba(59, 130, 246, 0.3)", "0px 0px 0px rgba(59, 130, 246, 0)"],
+        }}
+        transition={{
+          boxShadow: {
+            repeat: Infinity,
+            duration: 3,
+          },
+        }}
+      >
+        <Icon className="w-8 h-8 text-blue-400" />
+      </motion.div>
+      <h3 className="text-xl font-light mb-3">{title}</h3>
+      <p className="text-gray-400 text-center">{description}</p>
+    </motion.div>
+  );
+};
+
 export default function Home() {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
-  const controls = useAnimation()
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const controls = useAnimation();
+  const { user, logout } = useAuth() as AuthContextType;
 
   useEffect(() => {
     // Add smooth scrolling behavior
@@ -149,32 +291,38 @@ export default function Home() {
             <div className="hidden md:flex items-center space-x-8">
               <nav className="flex items-center space-x-8">
                 <motion.div whileHover={{ scale: 1.05 }}>
-                  <TransitionLink href="#" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
+                  <Link href="#" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
                     FieldX World
-                  </TransitionLink>
+                  </Link>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }}>
-                  <TransitionLink href="#discover" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
+                  <Link href="#discover" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
                     Solutions
-                  </TransitionLink>
+                  </Link>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }}>
-                  <TransitionLink href="#features" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
+                  <Link href="#features" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
                     Features
-                  </TransitionLink>
+                  </Link>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }}>
-                  <TransitionLink href="#pricing" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
+                  <Link href="#pricing" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
                     Pricing
-                  </TransitionLink>
+                  </Link>
                 </motion.div>
               </nav>
               
-              <motion.div className="flex items-center space-x-6" whileHover={{ scale: 1.05 }}>
-                <TransitionLink href="#" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
-                  Login / Register
-                </TransitionLink>
-              </motion.div>
+              {user ? (
+                // Show user menu if logged in
+                <UserMenu user={user} logout={logout} />
+              ) : (
+                // Show login/register if not logged in
+                <motion.div className="flex items-center space-x-6" whileHover={{ scale: 1.05 }}>
+                  <Link href="/login" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
+                    Login / Register
+                  </Link>
+                </motion.div>
+              )}
             </div>
 
             <motion.button 
@@ -251,13 +399,13 @@ export default function Home() {
               </motion.p>
             </motion.div>
 
-                          <motion.div 
+            <motion.div 
               className="mt-12"
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 1, duration: 0.8 }}
             >
-              <Link href="#discover" className="inline-block">
+              <Link href={user ? "/dashboard" : "/apply"} className="inline-block">
                 <motion.div 
                   className="flex flex-col items-center justify-center group"
                   whileHover={{ scale: 1.05 }}
@@ -265,8 +413,8 @@ export default function Home() {
                 >
                   <div className="relative border-2 border-white/50 rounded-full w-36 h-36 flex flex-col items-center justify-center group hover:border-blue-500 transition-colors duration-300">
                     <motion.div className="text-sm uppercase tracking-widest text-center">
-                      <div>Discover</div>
-                      <div>Our Products</div>
+                      <div>{user ? "Dashboard" : "Apply"}</div>
+                      <div>{user ? "Access" : "Now"}</div>
                     </motion.div>
                     <motion.div
                       animate={{ 
@@ -287,8 +435,179 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Features Section - Simplified */}
-        <section id="features" className="py-24 bg-gray-950">
+        {/* Discover Section with Feature Icons */}
+        <section id="discover" className="py-24 bg-black">
+          <div className="container mx-auto px-6">
+            <motion.div 
+              className="text-center mb-16"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <h2 className="text-4xl font-light mb-6">Powerful FTTH Solutions</h2>
+              <p className="text-lg text-gray-400 max-w-3xl mx-auto">
+                Streamline your telecommunications operations and fiber deployments with AI-powered tools and automation.
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <FeatureCard 
+                icon={Database} 
+                title="Real-time Data Synchronization" 
+                description="Seamless communication between field and office teams with instant updates and notifications."
+                delay={0.1} 
+              />
+              <FeatureCard 
+                icon={Calendar} 
+                title="AI Appointment Scheduler" 
+                description="Intelligent scheduling for autopsies and constructions, optimizing your team's time and resources."
+                delay={0.2} 
+              />
+              <FeatureCard 
+                icon={FileCode} 
+                title="As-Built Automation" 
+                description="Automatically generate complete documentation packages for billing and supervisor review."
+                delay={0.3} 
+              />
+            </div>
+
+            <motion.div 
+              className="mt-16 text-center"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+            >
+              <Link href="#features">
+                <motion.div 
+                  className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300"
+                  whileHover={{ y: -5 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                >
+                  <span>Explore All Features</span>
+                  <motion.div
+                    animate={{ y: [0, 3, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </motion.div>
+                </motion.div>
+              </Link>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Added Key Benefits Section */}
+        <section className="py-24 bg-gray-950">
+          <div className="container mx-auto px-6">
+            <motion.div 
+              className="text-center mb-16"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <h2 className="text-4xl font-light mb-6">Key Benefits</h2>
+              <p className="text-lg text-gray-400 max-w-3xl mx-auto">
+                See how FieldX transforms your FTTH operations
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              <motion.div
+                className="text-center"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1, duration: 0.6 }}
+                whileHover={{ y: -10 }}
+              >
+                <motion.div 
+                  className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-4"
+                  whileHover={{ scale: 1.1, backgroundColor: "rgba(59, 130, 246, 0.2)" }}
+                >
+                  <Clock className="w-6 h-6 text-blue-400" />
+                </motion.div>
+                <h3 className="text-xl font-light mb-2">30% Time Savings</h3>
+                <p className="text-gray-400 text-sm">
+                  Reduce administrative work and focus on deployment
+                </p>
+              </motion.div>
+
+              <motion.div
+                className="text-center"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2, duration: 0.6 }}
+                whileHover={{ y: -10 }}
+              >
+                <motion.div 
+                  className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-4"
+                  whileHover={{ scale: 1.1, backgroundColor: "rgba(59, 130, 246, 0.2)" }}
+                >
+                  <Zap className="w-6 h-6 text-blue-400" />
+                </motion.div>
+                <h3 className="text-xl font-light mb-2">40% Faster Billing</h3>
+                <p className="text-gray-400 text-sm">
+                  Automated documentation speeds up the billing process
+                </p>
+              </motion.div>
+
+              <motion.div
+                className="text-center"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3, duration: 0.6 }}
+                whileHover={{ y: -10 }}
+              >
+                <motion.div 
+                  className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-4"
+                  whileHover={{ scale: 1.1, backgroundColor: "rgba(59, 130, 246, 0.2)" }}
+                >
+                  <motion.div
+                    animate={{ 
+                      boxShadow: ["0px 0px 0px rgba(59, 130, 246, 0)", "0px 0px 15px rgba(59, 130, 246, 0.3)", "0px 0px 0px rgba(59, 130, 246, 0)"],
+                    }}
+                    transition={{ repeat: Infinity, duration: 3 }}
+                    className="rounded-full"
+                  >
+                    <Calendar className="w-6 h-6 text-blue-400" />
+                  </motion.div>
+                </motion.div>
+                <h3 className="text-xl font-light mb-2">20% More Jobs</h3>
+                <p className="text-gray-400 text-sm">
+                  Complete more projects with optimized scheduling
+                </p>
+              </motion.div>
+
+              <motion.div
+                className="text-center"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4, duration: 0.6 }}
+                whileHover={{ y: -10 }}
+              >
+                <motion.div 
+                  className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-4"
+                  whileHover={{ scale: 1.1, backgroundColor: "rgba(59, 130, 246, 0.2)" }}
+                >
+                  <Database className="w-6 h-6 text-blue-400" />
+                </motion.div>
+                <h3 className="text-xl font-light mb-2">0% Data Loss</h3>
+                <p className="text-gray-400 text-sm">
+                  Secure, real-time synchronization prevents critical data loss
+                </p>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section id="features" className="py-24 bg-black">
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
               <motion.div
@@ -373,8 +692,13 @@ export default function Home() {
             </div>
           </div>
         </section>
+        
+        {/* Pricing Plans Section */}
+        <section id="pricing">
+          <PricingPlans />
+        </section>
 
-        {/* CTA Section - Centered */}
+        {/* CTA Section */}
         <section className="py-24 bg-black">
           <div className="container mx-auto px-4 text-center">
             <motion.div
@@ -390,7 +714,7 @@ export default function Home() {
               </p>
 
               <div className="flex justify-center">
-                <TransitionLink href="/apply" className="inline-block">
+                <Link href={user ? "/dashboard" : "/apply"} className="inline-block">
                   <motion.div 
                     className="relative border-2 border-white/50 rounded-full w-48 h-48 flex flex-col items-center justify-center group hover:border-blue-500 transition-colors duration-300"
                     whileHover={{ scale: 1.05, borderColor: "#3B82F6" }}
@@ -406,8 +730,8 @@ export default function Home() {
                     }}
                   >
                     <motion.div className="text-sm uppercase tracking-widest text-center">
-                      <div>Request</div>
-                      <div>A Demo</div>
+                      <div>{user ? "Dashboard" : "Apply"}</div>
+                      <div>{user ? "Access" : "Now"}</div>
                     </motion.div>
                     <motion.div
                       animate={{ 
@@ -422,19 +746,14 @@ export default function Home() {
                       <ChevronDown className="h-4 w-4 text-white/70 group-hover:text-blue-400 transition-colors duration-300" />
                     </motion.div>
                   </motion.div>
-                </TransitionLink>
+                </Link>
               </div>
             </motion.div>
           </div>
         </section>
         
-        {/* Pricing Plans - Kept as component */}
-        <section id="pricing">
-          <PricingPlans />
-        </section>
-
-        {/* Footer - Simplified */}
-        <footer className="py-12 bg-black border-t border-white/10">
+        {/* Footer */}
+        <footer className="bg-black border-t border-gray-800 py-8">
           <div className="container mx-auto px-4">
             <div className="text-center mb-8">
               <motion.div 
@@ -442,7 +761,7 @@ export default function Home() {
                 whileHover={{ scale: 1.05 }}
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
-                <span className="font-extralight">field</span><span className="font-light">X</span>
+                <span className="font-extralight">Field</span><span className="font-light">X</span>
               </motion.div>
               <p className="text-gray-400 text-sm max-w-md mx-auto">
                 The complete CRM/FSM platform for managing FTTH projects in Greece.
@@ -531,7 +850,7 @@ export default function Home() {
             </div>
 
             <div className="border-t border-white/10 pt-8 text-center text-xs text-gray-500">
-              <p>&copy; {new Date().getFullYear()} FieldX. All rights reserved.</p>
+              <p>© {new Date().getFullYear()} FieldX. All rights reserved.</p>
             </div>
           </div>
         </footer>

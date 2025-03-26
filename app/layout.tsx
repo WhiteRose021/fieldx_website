@@ -1,18 +1,21 @@
-// app/layout.tsx (Server Component)
-import type { Metadata } from 'next'
-import './globals.css'
-import ClientLayout from '@/components/client-layout'
+// app/layout.tsx
+import type { Metadata } from 'next';
+import './globals.css';
+import ClientLayout from '@/components/client-layout';
 
 export const metadata: Metadata = {
-  title: 'FieldX - FTTH Management Platform',
+  title: 'FieldX',
+  icons: {
+    icon: '/logo.png',
+  },
   description: 'The complete CRM/FSM platform for managing FTTH projects in Greece',
   generator: 'v0.dev',
-}
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en">
@@ -20,5 +23,5 @@ export default function RootLayout({
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
-  )
+  );
 }
