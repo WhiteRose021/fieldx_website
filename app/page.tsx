@@ -151,7 +151,7 @@ export default function Home() {
           href="#"
           className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors"
         >
-          FieldX World
+          FieldX Nigga
         </TransitionLink>
       </motion.div>
       
