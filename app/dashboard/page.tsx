@@ -71,83 +71,87 @@ interface NewTicketFormProps {
 }
 
 // Sidebar navigation component
-const Sidebar = ({ isOpen, toggleSidebar, logout }: SidebarProps) => {
-  const navItems = [
-    { icon: BarChart2, label: 'Dashboard', href: '/dashboard' },
-    { icon: MessageSquare, label: 'Support Tickets', href: '/dashboard/tickets' },
-    { icon: Map, label: 'Projects', href: '/dashboard/projects' },
-    { icon: Calendar, label: 'Schedule', href: '/dashboard/schedule' },
-    { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
-  ];
+// Update the Sidebar component in your dashboard.tsx file
 
-  return (
-    <>
-      {/* Mobile overlay */}
-      {isOpen && (
-        <motion.div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={toggleSidebar}
-        />
-      )}
-      
-      {/* Sidebar */}
-      <motion.aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 border-r border-gray-800 transform ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0 transition-transform duration-300 ease-in-out`}
-        initial={{ x: -64 }}
-        animate={{ x: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between p-4 border-b border-gray-800">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="text-xl font-bold text-white">
-                <span className="font-light">Field</span>X
-              </div>
-            </Link>
-            <button
-              className="md:hidden text-gray-400 hover:text-white"
-              onClick={toggleSidebar}
-            >
-              <X size={20} />
-            </button>
-          </div>
-          
-          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-            {navItems.map((item) => (
-              <Link href={item.href} key={item.label}>
-                <motion.div
-                  className={`flex items-center px-3 py-3 text-gray-300 rounded-md hover:bg-gray-800 hover:text-white transition-colors group ${
-                    item.label === 'Dashboard' ? 'bg-gray-800 text-white' : ''
-                  }`}
-                  whileHover={{ x: 5 }}
-                >
-                  <item.icon size={18} className="mr-3" />
-                  <span>{item.label}</span>
-                </motion.div>
+const Sidebar = ({ isOpen, toggleSidebar, logout }: SidebarProps) => {
+    // Change the navItems to all point to dashboard for now
+    const navItems = [
+      { icon: BarChart2, label: 'Dashboard', href: '/dashboard', active: true },
+      // Commented items are placeholders - uncomment when these features are ready
+      // { icon: Map, label: 'Projects', href: '/dashboard/projects', active: false },
+      // { icon: Calendar, label: 'Schedule', href: '/dashboard/schedule', active: false },
+      // { icon: Settings, label: 'Settings', href: '/dashboard/settings', active: false },
+      { icon: MessageSquare, label: 'Support Tickets', href: '/dashboard', active: false },
+    ];
+  
+    return (
+      <>
+        {/* Mobile overlay */}
+        {isOpen && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={toggleSidebar}
+          />
+        )}
+        
+        {/* Sidebar */}
+        <motion.aside
+          className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 border-r border-gray-800 transform ${
+            isOpen ? 'translate-x-0' : '-translate-x-full'
+          } md:translate-x-0 transition-transform duration-300 ease-in-out`}
+          initial={{ x: -64 }}
+          animate={{ x: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="flex flex-col h-full">
+            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+              <Link href="/" className="flex items-center space-x-2">
+                <div className="text-xl font-bold text-white">
+                  <span className="font-light">Field</span>X
+                </div>
               </Link>
-            ))}
-          </nav>
-          
-          <div className="p-4 border-t border-gray-800">
-            <motion.button
-              onClick={logout}
-              className="flex items-center w-full px-3 py-3 text-gray-300 rounded-md hover:bg-gray-800 hover:text-white transition-colors"
-              whileHover={{ x: 5 }}
-            >
-              <LogOut size={18} className="mr-3" />
-              <span>Log out</span>
-            </motion.button>
+              <button
+                className="md:hidden text-gray-400 hover:text-white"
+                onClick={toggleSidebar}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+              {navItems.map((item) => (
+                <Link href={item.href} key={item.label}>
+                  <motion.div
+                    className={`flex items-center px-3 py-3 text-gray-300 rounded-md hover:bg-gray-800 hover:text-white transition-colors group ${
+                      item.active ? 'bg-gray-800 text-white' : ''
+                    }`}
+                    whileHover={{ x: 5 }}
+                  >
+                    <item.icon size={18} className="mr-3" />
+                    <span>{item.label}</span>
+                  </motion.div>
+                </Link>
+              ))}
+            </nav>
+            
+            <div className="p-4 border-t border-gray-800">
+              <motion.button
+                onClick={logout}
+                className="flex items-center w-full px-3 py-3 text-gray-300 rounded-md hover:bg-gray-800 hover:text-white transition-colors"
+                whileHover={{ x: 5 }}
+              >
+                <LogOut size={18} className="mr-3" />
+                <span>Log out</span>
+              </motion.button>
+            </div>
           </div>
-        </div>
-      </motion.aside>
-    </>
-  );
-};
+        </motion.aside>
+      </>
+    );
+  };
 
 // Ticket list component
 const TicketList = ({ tickets, selectedTicket, selectTicket, isLoading }: TicketListProps) => {
@@ -521,23 +525,32 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, [user, selectedTicket]);
 
-  const createTicket = async (subject: string, message: string) => {
+// Fix for the ticket creation function in dashboard.tsx
+// Replace your current createTicket function with this one:
+
+const createTicket = async (subject: string, message: string) => {
     if (!user?.email) return;
     
     try {
       setIsCreatingTicket(true);
       
-      const now = serverTimestamp();
+      // Create a regular timestamp instead of serverTimestamp for the messages array
+      const now = new Date();
+      const firestoreTimestamp = {
+        seconds: Math.floor(now.getTime() / 1000),
+        nanoseconds: now.getMilliseconds() * 1000000
+      };
+      
       const newTicket = {
         subject,
         status: 'open',
-        createdAt: now,
-        lastUpdate: now,
+        createdAt: serverTimestamp(), // This is fine outside of arrays
+        lastUpdate: serverTimestamp(), // This is fine outside of arrays
         userId: user.email,
         messages: [{
           sender: user.email,
           content: message,
-          timestamp: now,
+          timestamp: firestoreTimestamp, // Use regular timestamp object for arrays
           isAdmin: false
         }]
       };
@@ -545,7 +558,6 @@ export default function Dashboard() {
       const docRef = await addDoc(collection(db, 'tickets'), newTicket);
       setShowNewTicketForm(false);
       
-      // The ticket will be added to the list by the onSnapshot listener
     } catch (error) {
       console.error('Error creating ticket:', error);
       alert('Failed to create ticket. Please try again.');
@@ -553,25 +565,32 @@ export default function Dashboard() {
       setIsCreatingTicket(false);
     }
   };
-
+  
+  // Similarly, update your sendMessage function:
   const sendMessage = async (content: string) => {
     if (!selectedTicket || !user?.email) return;
     
     try {
       const ticketRef = doc(db, 'tickets', selectedTicket.id);
-      const now = serverTimestamp();
+      
+      // Create a regular timestamp for the message
+      const now = new Date();
+      const firestoreTimestamp = {
+        seconds: Math.floor(now.getTime() / 1000),
+        nanoseconds: now.getMilliseconds() * 1000000
+      };
       
       const newMessage = {
         sender: user.email,
         content,
-        timestamp: now,
+        timestamp: firestoreTimestamp, // Use regular timestamp object
         isAdmin: false
       };
       
       // Add the new message to the messages array
       await updateDoc(ticketRef, {
         messages: [...selectedTicket.messages, newMessage],
-        lastUpdate: now
+        lastUpdate: serverTimestamp() // This is fine outside arrays
       });
       
       // The ticket will be updated by the onSnapshot listener
