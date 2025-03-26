@@ -11,7 +11,6 @@ interface InquiryData {
   company: string;
   phone: string;
   description?: string;
-  planId: string;
 }
 
 interface ApiResponse {
@@ -25,7 +24,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     const data: InquiryData = await request.json();
     
     // Validate required fields
-    const requiredFields: (keyof InquiryData)[] = ['email', 'name', 'surname', 'company', 'phone', 'planId'];
+    const requiredFields: (keyof InquiryData)[] = ['email', 'name', 'surname', 'company', 'phone'];
     
     for (const field of requiredFields) {
       if (!data[field]) {
@@ -55,7 +54,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
       company: data.company,
       phone: data.phone,
       description: data.description || '',
-      planId: data.planId,
       status: 'new',
       createdAt: serverTimestamp()
     });
