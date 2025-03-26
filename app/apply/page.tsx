@@ -16,68 +16,12 @@ interface FormData {
   company: string;
   phone: string;
   description: string;
-  planId: string;
 }
 
 interface SubmitResponse {
   success: boolean;
   message: string;
 }
-
-// Plans data
-const plans = [
-  {
-    id: 'basic',
-    name: 'Basic',
-    description: 'Ideal for small businesses',
-    price: '49€',
-    period: '/ month',
-    popular: false,
-    features: [
-      'Up to 2 users',
-      'Basic FTTH management tools',
-      'Unlimited projects',
-      'Basic dashboard',
-      'Email support',
-    ]
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    description: 'For businesses in development',
-    price: '99€',
-    period: '/ month',
-    popular: true,
-    features: [
-      'Up to 10 users',
-      'Advanced management tools',
-      'Unlimited projects',
-      'Advanced dashboard',
-      'Phone support',
-      'AI suggestions',
-      'API access',
-      'Basic analytics',
-    ]
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    description: 'For large companies',
-    price: '249€',
-    period: '/ month',
-    popular: false,
-    features: [
-      'Unlimited users',
-      'Complete management tools',
-      'Unlimited projects',
-      'Custom dashboard',
-      '24/7 dedicated support',
-      'AI suggestions & automation',
-      'Advanced API',
-      'Advanced analytics',
-    ]
-  }
-];
 
 export default function ContactFormPage() {
   const router = useRouter();
@@ -87,8 +31,7 @@ export default function ContactFormPage() {
     surname: '',
     company: '',
     phone: '',
-    description: '',
-    planId: ''
+    description: ''
   });
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -330,28 +273,6 @@ export default function ContactFormPage() {
                         ></textarea>
                       </div>
                     </div>
-                    
-                    {/* Plan Selection */}
-                    {/* <div className="mb-8">
-                      <label htmlFor="planId" className="block text-sm font-medium text-gray-300 mb-2">
-                        Interested Plan <span className="text-red-400">*</span>
-                      </label>
-                      <select
-                        id="planId"
-                        name="planId"
-                        value={formData.planId}
-                        onChange={handleChange}
-                        className={`bg-gray-800 border ${errors.planId ? 'border-red-400' : 'border-gray-700'} rounded-md py-3 px-4 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none`}
-                      >
-                        <option value="" disabled>Select a plan</option>
-                        {plans.map(plan => (
-                          <option key={plan.id} value={plan.id}>
-                            {plan.name} - {plan.price}{plan.period}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.planId && <p className="mt-1 text-sm text-red-400">{errors.planId}</p>}
-                    </div> */}
                     
                     {/* Submit Button */}
                     <div>
