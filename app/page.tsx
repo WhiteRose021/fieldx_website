@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { ChevronDown } from "lucide-react"
 import Link from "next/link"
@@ -11,50 +11,43 @@ import FuturisticLights from "@/components/futuristic-lights"
 import OpticalFiberAnimation from "@/components/optical-fiber-animation"
 import CookieConsent from "@/components/cookie-consent"
 import { PageTransitionWrapper } from "@/components/page-transition"
-import PricingPlans from "@/components/pricing-plans";
+import PricingPlans from "@/components/pricing-plans"
 
-
-// Physics-based gravity element component
+// Interactive Gravity Element component 
 const GravityElement = () => {
   const constraintsRef = useRef(null)
   const x = useMotionValue(0)
   const y = useMotionValue(0)
   const [mounted, setMounted] = useState(false)
   
-  // Create spring physics for the rope effect
+  // Create spring physics for the element
   const springX = useSpring(x, { stiffness: 300, damping: 20 })
   const springY = useSpring(y, { stiffness: 300, damping: 20 })
   
-  // Rope position, attached at the top
-  const ropeStartX = useTransform(springX, (latest) => latest * 0.2)
-  const ropeStartY = -100
-  
   useEffect(() => {
     setMounted(true)
+    
+    // Add a subtle animation to make the element more noticeable
+    const interval = setInterval(() => {
+      x.set(Math.random() * 10 - 5)
+      y.set(Math.random() * 10 - 5)
+    }, 3000)
+    
+    return () => clearInterval(interval)
   }, [])
   
   return (
-    <motion.div ref={constraintsRef} className="gravity-container">
+    <motion.div ref={constraintsRef} className="gravity-container w-full flex items-center justify-center">
       {mounted && (
-        <>
-          <svg className="w-full h-full absolute">
-            <motion.line
-              x1="50%"
-              y1={ropeStartY}
-              x2={springX}
-              y2={springY}
-              stroke="rgba(255, 255, 255, 0.2)"
-              strokeWidth="2"
-            />
-          </svg>
-          
+        <div className="relative flex items-center justify-center">
           <motion.div 
-            className="gravity-element flex items-center justify-center absolute pointer-events-auto cursor-grab"
-            style={{ x: springX, y: springY, left: 'calc(50% - 5rem)', top: '50%' }}
+            className="gravity-element flex items-center justify-center pointer-events-auto cursor-grab relative"
+            style={{ x: springX, y: springY }}
             drag
             dragTransition={{ bounceStiffness: 300, bounceDamping: 20 }}
             dragElastic={0.2}
             whileDrag={{ cursor: "grabbing", scale: 1.05 }}
+            whileHover={{ scale: 1.1 }}
           >
             <motion.div
               className="text-7xl font-light tracking-wide select-none bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent"
@@ -77,20 +70,28 @@ const GravityElement = () => {
                   ease: "easeInOut"
                 }}
               >
-                field
+                Field<span className="font-normal">X</span>
               </motion.span>
             </motion.div>
           </motion.div>
           
-          {/* Futuristic blinking lights - χρησιμοποιούμε το dedicated component */}
+          <motion.div 
+            className="absolute inset-0 -z-10"
+            animate={{ 
+              boxShadow: ["0px 0px 0px rgba(59, 130, 246, 0)", "0px 0px 30px rgba(59, 130, 246, 0.2)", "0px 0px 0px rgba(59, 130, 246, 0)"],
+            }}
+            transition={{
+              repeat: Infinity,
+              duration: 3,
+            }}
+          ></motion.div>
+          
           <FuturisticLights />
-        </>
+        </div>
       )}
     </motion.div>
   )
 }
-
-
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -98,6 +99,9 @@ export default function Home() {
   const controls = useAnimation()
 
   useEffect(() => {
+    // Add smooth scrolling behavior
+    document.documentElement.style.scrollBehavior = "smooth";
+    
     const handleScroll = () => {
       setScrolled(window.scrollY > 50)
     }
@@ -105,7 +109,10 @@ export default function Home() {
     window.addEventListener("scroll", handleScroll)
     controls.start({ opacity: 1, y: 0 })
     
-    return () => window.removeEventListener("scroll", handleScroll)
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+      document.documentElement.style.scrollBehavior = "";
+    }
   }, [controls])
 
   const fadeInUp = {
@@ -118,153 +125,90 @@ export default function Home() {
       <div className="min-h-screen bg-black text-white overflow-x-hidden">
         <CookieConsent />
         
-        {/* Header */}
-{/* Header */}
-<motion.header
-  className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-    scrolled ? "bg-white shadow-md" : "bg-white"
-  }`}
-  initial={{ y: -100 }}
-  animate={{ y: 0 }}
-  transition={{ type: "spring", stiffness: 100, damping: 20 }}
->
-  <div className="container mx-auto px-4 md:px-6 py-4 flex justify-between items-center header-container">
-    <Link href="/" className="z-10">
-      <motion.div 
-        whileHover={{ scale: 1.05 }}
-        transition={{ type: "spring", stiffness: 400, damping: 10 }}
-      >
-        <Image 
-          src="https://i.imgur.com/65Exsnt.png" 
-          alt="FieldX Logo" 
-          width={120} 
-          height={40} 
-          className="h-auto" 
-          priority
-        />
-      </motion.div>
-    </Link>
-
-    <div className="hidden md:flex items-center space-x-6 lg:space-x-8">
-      <motion.div whileHover={{ scale: 1.05 }}>
-        <TransitionLink
-          href="#"
-          className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors"
+        {/* White Taskbar Header */}
+        <motion.header
+          className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+            scrolled ? "bg-white shadow-md" : "bg-white"
+          }`}
+          initial={{ y: -100 }}
+          animate={{ y: 0 }}
+          transition={{ type: "spring", stiffness: 100, damping: 20 }}
         >
-          FieldX Nigga
-        </TransitionLink>
-      </motion.div>
-      
-      <div className="flex items-center space-x-4 lg:space-x-6">
-        <motion.div whileHover={{ scale: 1.05 }}>
-          <TransitionLink href="#solutions" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
-            Solutions
-          </TransitionLink>
-        </motion.div>
-        <motion.div whileHover={{ scale: 1.05 }}>
-          <TransitionLink href="#features" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
-            Features
-          </TransitionLink>
-        </motion.div>
-        <motion.div whileHover={{ scale: 1.05 }}>
-          <TransitionLink href="#modules" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
-            Modules
-          </TransitionLink>
-        </motion.div>
-        <motion.div whileHover={{ scale: 1.05 }}>
-          <TransitionLink href="#integrations" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
-            Integrations
-          </TransitionLink>
-        </motion.div>
-      </div>
-      
-      <motion.div className="flex items-center space-x-2" whileHover={{ scale: 1.05 }}>
-        <TransitionLink href="#" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
-          Login / Register
-        </TransitionLink>
-        <span className="text-xs text-gray-800">( 0 )</span>
-      </motion.div>
-      <motion.button 
-        className="focus:outline-none" 
-        aria-label="Search"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5 text-gray-800"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1}
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
-      </motion.button>
-      <motion.button 
-        className="focus:outline-none" 
-        aria-label="Menu" 
-        onClick={() => setMenuOpen(!menuOpen)}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        <div className="space-y-1.5">
-          <motion.div 
-            className="w-6 h-px bg-gray-800"
-            animate={{ 
-              rotateZ: menuOpen ? 45 : 0,
-              y: menuOpen ? 4 : 0,
-            }}
-          ></motion.div>
-          <motion.div 
-            className="w-6 h-px bg-gray-800"
-            animate={{ 
-              rotateZ: menuOpen ? -45 : 0,
-              y: menuOpen ? -4 : 0,
-            }}
-          ></motion.div>
-        </div>
-      </motion.button>
-    </div>
+          <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+            <Link href="/" className="z-10">
+              <motion.div 
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              >
+                <div className="text-2xl font-bold text-gray-800">
+                  <span className="font-light">Field</span><span>X</span>
+                </div>
+              </motion.div>
+            </Link>
 
-    <div className="md:hidden flex items-center">
-      <motion.button 
-        className="focus:outline-none" 
-        aria-label="Menu" 
-        onClick={() => setMenuOpen(!menuOpen)}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        <div className="space-y-1.5">
-          <motion.div 
-            className="w-6 h-px bg-gray-800"
-            animate={{ 
-              rotateZ: menuOpen ? 45 : 0, 
-              y: menuOpen ? 4 : 0 
-            }}
-          ></motion.div>
-          <motion.div 
-            className="w-6 h-px bg-gray-800"
-            animate={{ 
-              rotateZ: menuOpen ? -45 : 0, 
-              y: menuOpen ? -4 : 0 
-            }}
-          ></motion.div>
-        </div>
-      </motion.button>
-    </div>
-  </div>
-</motion.header>
+            <div className="hidden md:flex items-center space-x-8">
+              <nav className="flex items-center space-x-8">
+                <motion.div whileHover={{ scale: 1.05 }}>
+                  <TransitionLink href="#" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
+                    FieldX World
+                  </TransitionLink>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }}>
+                  <TransitionLink href="#discover" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
+                    Solutions
+                  </TransitionLink>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }}>
+                  <TransitionLink href="#features" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
+                    Features
+                  </TransitionLink>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }}>
+                  <TransitionLink href="#pricing" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
+                    Pricing
+                  </TransitionLink>
+                </motion.div>
+              </nav>
+              
+              <motion.div className="flex items-center space-x-6" whileHover={{ scale: 1.05 }}>
+                <TransitionLink href="#" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
+                  Login / Register
+                </TransitionLink>
+              </motion.div>
+            </div>
+
+            <motion.button 
+              className="md:hidden focus:outline-none" 
+              aria-label="Menu" 
+              onClick={() => setMenuOpen(!menuOpen)}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <div className="space-y-1.5">
+                <motion.div 
+                  className="w-6 h-px bg-gray-800"
+                  animate={{ 
+                    rotateZ: menuOpen ? 45 : 0,
+                    y: menuOpen ? 4 : 0,
+                  }}
+                ></motion.div>
+                <motion.div 
+                  className="w-6 h-px bg-gray-800"
+                  animate={{ 
+                    rotateZ: menuOpen ? -45 : 0,
+                    y: menuOpen ? -4 : 0,
+                  }}
+                ></motion.div>
+              </div>
+            </motion.button>
+          </div>
+        </motion.header>
 
         {/* Full-screen menu */}
         <MainMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
 
-        {/* Hero Section */}
-        <section className="relative h-screen">
+        {/* Hero Section - Centered */}
+        <section className="relative h-screen flex items-center justify-center">
           <div className="absolute inset-0 z-0">
             <motion.div 
               className="absolute inset-0 bg-gradient-to-r from-black to-black/70"
@@ -274,12 +218,12 @@ export default function Home() {
             ></motion.div>
           </div>
 
-          {/* Gravity Element */}
-          <GravityElement />
+          <div className="relative z-10 text-center flex flex-col items-center justify-center w-full">
+            {/* Gravity Element */}
+            <GravityElement />
 
-          <div className="relative hero-content">
             <motion.div 
-              className="flex-center-column"
+              className="mt-8 flex flex-col items-center"
               initial="hidden"
               animate="visible"
               variants={{
@@ -291,7 +235,7 @@ export default function Home() {
               }}
             >
               <motion.h1 
-                className="hero-title"
+                className="text-6xl md:text-7xl font-light tracking-wide mb-4"
                 variants={fadeInUp}
                 transition={{ duration: 0.8 }}
               >
@@ -299,7 +243,7 @@ export default function Home() {
               </motion.h1>
               
               <motion.p
-                className="hero-subtitle"
+                className="text-xl md:text-2xl font-light tracking-wide text-gray-300"
                 variants={fadeInUp}
                 transition={{ duration: 0.8, delay: 0.2 }}
               >
@@ -307,180 +251,45 @@ export default function Home() {
               </motion.p>
             </motion.div>
 
-            <motion.div 
-              className="discover-button-container"
+                          <motion.div 
+              className="mt-12"
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 1, duration: 0.8 }}
             >
               <Link href="#discover" className="inline-block">
                 <motion.div 
-                  className="discover-button relative border border-white/30 rounded-full flex flex-col items-center justify-center group hover:border-blue-400 transition-colors duration-300"
-                  whileHover={{ scale: 1.05, borderColor: "#3B82F6" }}
+                  className="flex flex-col items-center justify-center group"
+                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  animate={{ 
-                    boxShadow: ["0px 0px 0px rgba(59, 130, 246, 0)", "0px 0px 30px rgba(59, 130, 246, 0.3)", "0px 0px 0px rgba(59, 130, 246, 0)"],
-                  }}
-                  transition={{
-                    boxShadow: {
-                      repeat: Infinity,
-                      duration: 3,
-                    },
-                  }}
                 >
-                  <motion.div className="text-sm uppercase tracking-widest text-center">
-                    <div>Discover</div>
-                    <div>Our Products</div>
-                  </motion.div>
-                  <motion.div
-                    animate={{ 
-                      y: [0, 5, 0], 
-                    }}
-                    transition={{ 
-                      repeat: Infinity, 
-                      duration: 1.5,
-                    }}
-                  >
-                    <ChevronDown className="absolute bottom-6 h-4 w-4 text-white/70 group-hover:text-blue-400 transition-colors duration-300" />
-                  </motion.div>
+                  <div className="relative border-2 border-white/50 rounded-full w-36 h-36 flex flex-col items-center justify-center group hover:border-blue-500 transition-colors duration-300">
+                    <motion.div className="text-sm uppercase tracking-widest text-center">
+                      <div>Discover</div>
+                      <div>Our Products</div>
+                    </motion.div>
+                    <motion.div
+                      animate={{ 
+                        y: [0, 5, 0], 
+                      }}
+                      transition={{ 
+                        repeat: Infinity, 
+                        duration: 1.5,
+                      }}
+                      className="absolute bottom-6"
+                    >
+                      <ChevronDown className="h-4 w-4 text-white/70 group-hover:text-blue-400 transition-colors duration-300" />
+                    </motion.div>
+                  </div>
                 </motion.div>
               </Link>
             </motion.div>
           </div>
         </section>
 
-        {/* Discover Section */}
-        <section id="discover" className="py-24 bg-black">
-          <div className="container-center">
-            <motion.div 
-              className="max-w-3xl mx-auto text-center mb-16"
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-            >
-              <h2 className="section-title">The Complete FTTH Management Platform</h2>
-              <p className="section-subtitle text-gray-400">
-                FieldX connects field and office engineers in real-time, optimizing fiber-to-the-home deployments with
-                AI-powered tools and automation.
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-              <motion.div 
-                className="group"
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-                whileHover={{ y: -10 }}
-              >
-                <div className="relative overflow-hidden mb-6 aspect-square">
-                  <Image
-                    src="/images/data-sync.png"
-                    alt="Real-time data synchronization"
-                    width={600}
-                    height={600}
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <motion.div 
-                    className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-6"
-                    initial={{ opacity: 0 }}
-                    whileHover={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <span className="text-sm uppercase tracking-wider">Real-time Sync</span>
-                  </motion.div>
-                </div>
-                <motion.h3 
-                  className="text-xl font-light mb-2 text-center md:text-left"
-                  whileHover={{ color: "#60A5FA" }}
-                >
-                  Real-time Data Synchronization
-                </motion.h3>
-                <p className="text-gray-400 text-sm text-center md:text-left">
-                  Seamless communication between field and office teams with instant updates and notifications.
-                </p>
-              </motion.div>
-
-              <motion.div 
-                className="group"
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                whileHover={{ y: -10 }}
-              >
-                <div className="relative overflow-hidden mb-6 aspect-square">
-                  <Image
-                    src="/images/ai-scheduler.png"
-                    alt="AI appointment scheduler"
-                    width={600}
-                    height={600}
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <motion.div 
-                    className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-6"
-                    initial={{ opacity: 0 }}
-                    whileHover={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <span className="text-sm uppercase tracking-wider">AI Powered</span>
-                  </motion.div>
-                </div>
-                <motion.h3 
-                  className="text-xl font-light mb-2 text-center md:text-left"
-                  whileHover={{ color: "#60A5FA" }}
-                >
-                  AI Appointment Scheduler
-                </motion.h3>
-                <p className="text-gray-400 text-sm text-center md:text-left">
-                  Intelligent scheduling for autopsies and constructions, optimizing your team's time and resources.
-                </p>
-              </motion.div>
-
-              <motion.div 
-                className="group"
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.5 }}
-                whileHover={{ y: -10 }}
-              >
-                <div className="relative overflow-hidden mb-6 aspect-square">
-                  <Image
-                    src="/images/automation.png"
-                    alt="As-built automation"
-                    width={600}
-                    height={600}
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <motion.div 
-                    className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-6"
-                    initial={{ opacity: 0 }}
-                    whileHover={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <span className="text-sm uppercase tracking-wider">Automation</span>
-                  </motion.div>
-                </div>
-                <motion.h3 
-                  className="text-xl font-light mb-2 text-center md:text-left"
-                  whileHover={{ color: "#60A5FA" }}
-                >
-                  As-Built Automation
-                </motion.h3>
-                <p className="text-gray-400 text-sm text-center md:text-left">
-                  Automatically generate complete documentation packages for billing and supervisor review.
-                </p>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
-        {/* Features Section */}
+        {/* Features Section - Simplified */}
         <section id="features" className="py-24 bg-gray-950">
-          <div className="container-center">
+          <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
               <motion.div
                 initial={{ opacity: 0, x: -50 }}
@@ -489,8 +298,8 @@ export default function Home() {
                 transition={{ duration: 0.8 }}
                 className="text-center md:text-left"
               >
-                <h2 className="section-title md:text-left">Designed for FTTH Excellence</h2>
-                <p className="section-subtitle md:text-left text-gray-400 mb-8">
+                <h2 className="text-4xl font-light mb-6">Designed for FTTH Excellence</h2>
+                <p className="text-lg text-gray-400 mb-8">
                   FieldX combines cutting-edge technology with industry-specific tools to streamline your fiber deployment
                   projects from planning to completion.
                 </p>
@@ -565,9 +374,9 @@ export default function Home() {
           </div>
         </section>
 
-        {/* CTA Section */}
+        {/* CTA Section - Centered */}
         <section className="py-24 bg-black">
-          <div className="container-center text-center">
+          <div className="container mx-auto px-4 text-center">
             <motion.div
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -575,15 +384,15 @@ export default function Home() {
               transition={{ duration: 0.8 }}
               className="max-w-3xl mx-auto"
             >
-              <h2 className="section-title">Experience the Future of FTTH Management</h2>
-              <p className="section-subtitle text-gray-400 mb-12">
+              <h2 className="text-4xl font-light mb-6">Experience the Future of FTTH Management</h2>
+              <p className="text-lg text-gray-400 mb-12">
                 Join the leading telecom companies in Greece that are already benefiting from FieldX's powerful platform.
               </p>
 
               <div className="flex justify-center">
                 <TransitionLink href="/apply" className="inline-block">
                   <motion.div 
-                    className="relative border border-white/30 rounded-full w-36 h-36 md:w-48 md:h-48 flex flex-col items-center justify-center group hover:border-blue-400 transition-colors duration-300"
+                    className="relative border-2 border-white/50 rounded-full w-48 h-48 flex flex-col items-center justify-center group hover:border-blue-500 transition-colors duration-300"
                     whileHover={{ scale: 1.05, borderColor: "#3B82F6" }}
                     whileTap={{ scale: 0.95 }}
                     animate={{ 
@@ -608,8 +417,9 @@ export default function Home() {
                         repeat: Infinity, 
                         duration: 1.5,
                       }}
+                      className="absolute bottom-8"
                     >
-                      <ChevronDown className="absolute bottom-8 h-4 w-4 text-white/70 group-hover:text-blue-400 transition-colors duration-300" />
+                      <ChevronDown className="h-4 w-4 text-white/70 group-hover:text-blue-400 transition-colors duration-300" />
                     </motion.div>
                   </motion.div>
                 </TransitionLink>
@@ -618,107 +428,109 @@ export default function Home() {
           </div>
         </section>
         
-        {/* Pricing Plans Section */}
-        <PricingPlans />
+        {/* Pricing Plans - Kept as component */}
+        <section id="pricing">
+          <PricingPlans />
+        </section>
 
-        {/* Footer */}
+        {/* Footer - Simplified */}
         <footer className="py-12 bg-black border-t border-white/10">
-          <div className="container-center">
-            <motion.div 
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-            >
-              <div className="text-center md:text-left">
-                <motion.div 
-                  className="text-2xl font-light tracking-wider mb-6 flex justify-center md:justify-start"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                >
-                  <span className="font-extralight">field</span>
-                </motion.div>
-                <p className="text-gray-400 text-sm">
-                  The complete CRM/FSM platform for managing FTTH projects in Greece.
-                </p>
-              </div>
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-8">
+              <motion.div 
+                className="text-2xl font-light tracking-wider mb-6 inline-block"
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              >
+                <span className="font-extralight">field</span><span className="font-light">X</span>
+              </motion.div>
+              <p className="text-gray-400 text-sm max-w-md mx-auto">
+                The complete CRM/FSM platform for managing FTTH projects in Greece.
+              </p>
+            </div>
 
-              <div className="text-center md:text-left">
-                <h3 className="text-sm uppercase tracking-wider mb-6">Products</h3>
-                <ul className="space-y-3 text-gray-400 text-sm">
-                  <motion.li whileHover={{ x: 3 }} className="flex justify-center md:justify-start">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto mb-12">
+              <div className="text-center">
+                <h3 className="text-sm uppercase tracking-wider mb-4">Products</h3>
+                <ul className="space-y-2 text-gray-400 text-sm">
+                  <motion.li whileHover={{ y: -2 }} className="flex justify-center">
                     <Link href="#" className="hover:text-blue-400 transition-colors">
                       Field Management
                     </Link>
                   </motion.li>
-                  <motion.li whileHover={{ x: 3 }} className="flex justify-center md:justify-start">
+                  <motion.li whileHover={{ y: -2 }} className="flex justify-center">
                     <Link href="#" className="hover:text-blue-400 transition-colors">
                       Office Tools
                     </Link>
                   </motion.li>
-                  <motion.li whileHover={{ x: 3 }} className="flex justify-center md:justify-start">
+                  <motion.li whileHover={{ y: -2 }} className="flex justify-center">
                     <Link href="#" className="hover:text-blue-400 transition-colors">
                       AI Scheduler
                     </Link>
                   </motion.li>
-                  <motion.li whileHover={{ x: 3 }} className="flex justify-center md:justify-start">
-                    <Link href="#" className="hover:text-blue-400 transition-colors">
-                      Documentation
-                    </Link>
-                  </motion.li>
                 </ul>
               </div>
 
-              <div className="text-center md:text-left">
-                <h3 className="text-sm uppercase tracking-wider mb-6">Company</h3>
-                <ul className="space-y-3 text-gray-400 text-sm">
-                  <motion.li whileHover={{ x: 3 }} className="flex justify-center md:justify-start">
+              <div className="text-center">
+                <h3 className="text-sm uppercase tracking-wider mb-4">Company</h3>
+                <ul className="space-y-2 text-gray-400 text-sm">
+                  <motion.li whileHover={{ y: -2 }} className="flex justify-center">
                     <Link href="#" className="hover:text-blue-400 transition-colors">
                       About Us
                     </Link>
                   </motion.li>
-                  <motion.li whileHover={{ x: 3 }} className="flex justify-center md:justify-start">
+                  <motion.li whileHover={{ y: -2 }} className="flex justify-center">
                     <Link href="#" className="hover:text-blue-400 transition-colors">
                       Careers
                     </Link>
                   </motion.li>
-                  <motion.li whileHover={{ x: 3 }} className="flex justify-center md:justify-start">
+                  <motion.li whileHover={{ y: -2 }} className="flex justify-center">
                     <Link href="#" className="hover:text-blue-400 transition-colors">
                       Contact
                     </Link>
                   </motion.li>
-                  <motion.li whileHover={{ x: 3 }} className="flex justify-center md:justify-start">
+                </ul>
+              </div>
+
+              <div className="text-center">
+                <h3 className="text-sm uppercase tracking-wider mb-4">Support</h3>
+                <ul className="space-y-2 text-gray-400 text-sm">
+                  <motion.li whileHover={{ y: -2 }} className="flex justify-center">
                     <Link href="#" className="hover:text-blue-400 transition-colors">
-                      Blog
+                      Documentation
+                    </Link>
+                  </motion.li>
+                  <motion.li whileHover={{ y: -2 }} className="flex justify-center">
+                    <Link href="#" className="hover:text-blue-400 transition-colors">
+                      FAQ
+                    </Link>
+                  </motion.li>
+                  <motion.li whileHover={{ y: -2 }} className="flex justify-center">
+                    <Link href="#" className="hover:text-blue-400 transition-colors">
+                      Help Center
                     </Link>
                   </motion.li>
                 </ul>
               </div>
 
-              <div className="text-center md:text-left">
-                <h3 className="text-sm uppercase tracking-wider mb-6">Legal</h3>
-                <ul className="space-y-3 text-gray-400 text-sm">
-                  <motion.li whileHover={{ x: 3 }} className="flex justify-center md:justify-start">
+              <div className="text-center">
+                <h3 className="text-sm uppercase tracking-wider mb-4">Legal</h3>
+                <ul className="space-y-2 text-gray-400 text-sm">
+                  <motion.li whileHover={{ y: -2 }} className="flex justify-center">
                     <Link href="#" className="hover:text-blue-400 transition-colors">
                       Privacy Policy
                     </Link>
                   </motion.li>
-                  <motion.li whileHover={{ x: 3 }} className="flex justify-center md:justify-start">
+                  <motion.li whileHover={{ y: -2 }} className="flex justify-center">
                     <Link href="#" className="hover:text-blue-400 transition-colors">
                       Terms of Service
                     </Link>
                   </motion.li>
-                  <motion.li whileHover={{ x: 3 }} className="flex justify-center md:justify-start">
-                    <Link href="#" className="hover:text-blue-400 transition-colors">
-                      Cookie Policy
-                    </Link>
-                  </motion.li>
                 </ul>
               </div>
-            </motion.div>
+            </div>
 
-            <div className="border-t border-white/10 mt-12 pt-8 text-center text-xs text-gray-500">
+            <div className="border-t border-white/10 pt-8 text-center text-xs text-gray-500">
               <p>&copy; {new Date().getFullYear()} FieldX. All rights reserved.</p>
             </div>
           </div>
