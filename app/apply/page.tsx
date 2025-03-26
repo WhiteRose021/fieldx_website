@@ -293,7 +293,7 @@ export default function ContactFormPage() {
                           </span>
                         ) : (
                           <>
-                            Submit Inquiry
+                            Submit
                             <ArrowRight size={18} className="ml-2" />
                           </>
                         )}
