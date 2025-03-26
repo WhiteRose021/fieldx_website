@@ -1,14 +1,19 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { PageTransitionWrapper } from '@/components/page-transition';
 import Header from '@/components/header';
-import { ChevronLeft, Edit, CheckCircle, XCircle, Clock, User, Search, ChevronDown, Phone, Mail, MessageSquare, X } from 'lucide-react';
+import { 
+  ChevronLeft, Edit, CheckCircle, XCircle, Clock, User, Search, 
+  ChevronDown, Phone, Mail, MessageSquare, X, Send, RefreshCw, Filter 
+} from 'lucide-react';
 import { JSX } from 'react/jsx-runtime';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, where, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 // Define types
 interface UserType {
@@ -44,6 +49,24 @@ interface LeadType {
   };
 }
 
+interface Message {
+  id?: string;
+  sender: string;
+  content: string;
+  timestamp: any;
+  isAdmin: boolean;
+}
+
+interface Ticket {
+  id: string;
+  subject: string;
+  status: 'open' | 'closed';
+  createdAt: any;
+  lastUpdate: any;
+  messages: Message[];
+  userId: string;
+}
+
 interface UserPlanType {
   user: UserType;
   plan: PlanType | null;
@@ -69,7 +92,8 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [users, setUsers] = useState<UserPlanType[]>([]);
   const [leads, setLeads] = useState<LeadType[]>([]);
-  const [activeTab, setActiveTab] = useState<'users' | 'leads'>('users');
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [activeTab, setActiveTab] = useState<'users' | 'leads' | 'tickets'>('users');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [editingUser, setEditingUser] = useState<string | null>(null);
@@ -77,7 +101,12 @@ export default function AdminDashboard() {
   const [editingLead, setEditingLead] = useState<string | null>(null);
   const [editLeadStatus, setEditLeadStatus] = useState<'new' | 'contacted' | 'converted' | 'closed'>('new');
   const [viewingLead, setViewingLead] = useState<LeadType | null>(null);
-  
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [newMessage, setNewMessage] = useState('');
+  const [ticketFilterStatus, setTicketFilterStatus] = useState<'all' | 'open' | 'closed'>('all');
+  const [isLoadingTickets, setIsLoadingTickets] = useState<boolean>(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   // Check if user is admin
   useEffect(() => {
     if (!loading) {
@@ -87,9 +116,21 @@ export default function AdminDashboard() {
         router.push('/dashboard');
       } else {
         loadData();
+        subscribeToTickets();
       }
     }
   }, [user, loading, router]);
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (selectedTicket) {
+      scrollToBottom();
+    }
+  }, [selectedTicket?.messages?.length]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // Load all users and leads data
   const loadData = async () => {
@@ -108,6 +149,93 @@ export default function AdminDashboard() {
       console.error('Error loading admin data:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Subscribe to tickets collection for real-time updates
+  const subscribeToTickets = () => {
+    setIsLoadingTickets(true);
+    
+    const ticketsRef = collection(db, 'tickets');
+    const q = query(ticketsRef, orderBy('lastUpdate', 'desc'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedTickets = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          subject: data.subject,
+          status: data.status,
+          createdAt: data.createdAt,
+          lastUpdate: data.lastUpdate,
+          messages: data.messages || [],
+          userId: data.userId
+        } as Ticket;
+      });
+      
+      setTickets(fetchedTickets);
+      
+      // Update selected ticket if it exists in the list
+      if (selectedTicket) {
+        const updatedTicket = fetchedTickets.find(t => t.id === selectedTicket.id);
+        if (updatedTicket) {
+          setSelectedTicket(updatedTicket);
+        }
+      }
+      
+      setIsLoadingTickets(false);
+    }, (error) => {
+      console.error("Error fetching tickets:", error);
+      setIsLoadingTickets(false);
+    });
+    
+    return unsubscribe;
+  };
+
+  // Send a message to a ticket
+  const sendAdminMessage = async (ticketId: string, content: string) => {
+    if (!user?.email || !content.trim()) return;
+    
+    try {
+      const ticketRef = doc(db, 'tickets', ticketId);
+      const now = serverTimestamp();
+      
+      const newMessage = {
+        sender: user.email,
+        content,
+        timestamp: now,
+        isAdmin: true
+      };
+      
+      // Add the new message to the messages array
+      await updateDoc(ticketRef, {
+        messages: [...(selectedTicket?.messages || []), newMessage],
+        lastUpdate: now
+      });
+      
+      // Clear the input field
+      setNewMessage('');
+      
+      // The ticket will be updated by the onSnapshot listener
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Failed to send message. Please try again.');
+    }
+  };
+
+  // Update ticket status (open/closed)
+  const updateTicketStatus = async (ticketId: string, status: 'open' | 'closed') => {
+    try {
+      const ticketRef = doc(db, 'tickets', ticketId);
+      await updateDoc(ticketRef, {
+        status,
+        lastUpdate: serverTimestamp()
+      });
+      
+      // The ticket will be updated by the onSnapshot listener
+    } catch (error) {
+      console.error('Error updating ticket status:', error);
+      alert('Failed to update ticket status. Please try again.');
     }
   };
 
@@ -138,6 +266,22 @@ export default function AdminDashboard() {
       email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       company.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
+
+  // Filter tickets based on search query and status
+  const filteredTickets = tickets.filter(ticket => {
+    // First filter by status if not "all"
+    if (ticketFilterStatus !== 'all' && ticket.status !== ticketFilterStatus) {
+      return false;
+    }
+    
+    // Then filter by search term
+    if (!searchQuery) return true;
+    
+    return (
+      ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ticket.userId.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
 
@@ -206,7 +350,8 @@ export default function AdminDashboard() {
       new: 'bg-blue-500/20 text-blue-400',
       contacted: 'bg-purple-500/20 text-purple-400',
       converted: 'bg-green-500/20 text-green-400',
-      closed: 'bg-gray-500/20 text-gray-400'
+      closed: 'bg-gray-500/20 text-gray-400',
+      open: 'bg-green-500/20 text-green-400'
     };
     
     const statusIcons: Record<string, JSX.Element> = {
@@ -216,7 +361,8 @@ export default function AdminDashboard() {
       new: <CheckCircle size={16} className="mr-2" />,
       contacted: <User size={16} className="mr-2" />,
       converted: <CheckCircle size={16} className="mr-2" />,
-      closed: <XCircle size={16} className="mr-2" />
+      closed: <XCircle size={16} className="mr-2" />,
+      open: <CheckCircle size={16} className="mr-2" />
     };
 
     return (
@@ -256,7 +402,7 @@ export default function AdminDashboard() {
                 </Link>
                 
                 <h1 className="text-3xl font-light">Admin Dashboard</h1>
-                <p className="text-gray-400 mt-2">Manage users, plans, and leads</p>
+                <p className="text-gray-400 mt-2">Manage users, plans, tickets and leads</p>
               </div>
               
               <div className="mt-4 md:mt-0 flex items-center">
@@ -281,7 +427,7 @@ export default function AdminDashboard() {
             </div>
             
             {/* Tabs */}
-            <div className="flex border-b border-gray-800 mb-6">
+            <div className="flex border-b border-gray-800 mb-6 overflow-x-auto">
               <button
                 className={`px-6 py-3 text-sm font-medium ${activeTab === 'users' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-200'}`}
                 onClick={() => setActiveTab('users')}
@@ -293,6 +439,15 @@ export default function AdminDashboard() {
                 onClick={() => setActiveTab('leads')}
               >
                 Contact Inquiries
+              </button>
+              <button
+                className={`px-6 py-3 text-sm font-medium ${activeTab === 'tickets' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-200'}`}
+                onClick={() => {
+                  setActiveTab('tickets');
+                  setSelectedTicket(null);
+                }}
+              >
+                Support Tickets
               </button>
             </div>
             
@@ -538,6 +693,189 @@ export default function AdminDashboard() {
                       )}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+            
+            {/* Tickets Tab */}
+            {activeTab === 'tickets' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Tickets List */}
+                <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+                  <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+                    <h3 className="text-lg font-light">Support Tickets</h3>
+                    <div className="flex items-center space-x-2">
+                      <select 
+                        className="bg-gray-800 border border-gray-700 rounded-md text-sm p-1.5 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={ticketFilterStatus}
+                        onChange={(e) => setTicketFilterStatus(e.target.value as 'all' | 'open' | 'closed')}
+                      >
+                        <option value="all">All Tickets</option>
+                        <option value="open">Open</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                      <Filter size={16} className="text-gray-400" />
+                    </div>
+                  </div>
+                  
+                  <div className="max-h-[600px] overflow-y-auto">
+                    {isLoadingTickets ? (
+                      <div className="p-8 flex justify-center">
+                        <RefreshCw size={24} className="text-blue-400 animate-spin" />
+                      </div>
+                    ) : filteredTickets.length === 0 ? (
+                      <div className="p-8 text-center text-gray-400">
+                        <MessageSquare size={32} className="mx-auto mb-3 opacity-30" />
+                        <p>No tickets found</p>
+                        <p className="text-sm mt-1">
+                          {searchQuery ? 'Try adjusting your search' : 'Users have not submitted any tickets yet'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-gray-800">
+                        {filteredTickets.map((ticket) => (
+                          <motion.div 
+                            key={ticket.id}
+                            className={`p-4 cursor-pointer hover:bg-gray-800 transition-colors ${
+                              selectedTicket?.id === ticket.id ? 'bg-gray-800 border-l-4 border-blue-500' : ''
+                            }`}
+                            onClick={() => setSelectedTicket(ticket)}
+                            whileHover={{ x: 5 }}
+                          >
+                            <div className="flex justify-between mb-2">
+                              <h4 className="font-medium text-gray-200 truncate max-w-[70%]">{ticket.subject}</h4>
+                              <StatusBadge status={ticket.status} />
+                            </div>
+                            <div className="flex justify-between items-center text-xs text-gray-400">
+                              <div className="flex items-center">
+                                <MessageSquare size={12} className="mr-1" />
+                                <span>{ticket.messages.length} messages</span>
+                              </div>
+                              <div className="flex items-center">
+                                <User size={12} className="mr-1" />
+                                <span>{ticket.userId}</span>
+                              </div>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              Last update: {ticket.lastUpdate ? new Date(ticket.lastUpdate.seconds * 1000).toLocaleString() : '-'}
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Ticket Details */}
+                <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden flex flex-col h-[600px]">
+                  {selectedTicket ? (
+                    <>
+                      <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+                        <div>
+                          <h3 className="text-lg font-medium">{selectedTicket.subject}</h3>
+                          <div className="text-xs text-gray-400 mt-1 flex items-center">
+                            <User size={12} className="mr-1" />
+                            <span>{selectedTicket.userId}</span>
+                            <span className="mx-2">•</span>
+                            <span>
+                              Created: {new Date(selectedTicket.createdAt.seconds * 1000).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3">
+                          <StatusBadge status={selectedTicket.status} />
+                          
+                          {selectedTicket.status === 'open' ? (
+                            <button
+                              onClick={() => updateTicketStatus(selectedTicket.id, 'closed')}
+                              className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 py-1 px-2 rounded-md transition-colors"
+                            >
+                              Close Ticket
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => updateTicketStatus(selectedTicket.id, 'open')}
+                              className="text-xs bg-green-500/10 hover:bg-green-500/20 text-green-400 py-1 px-2 rounded-md transition-colors"
+                            >
+                              Reopen Ticket
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex-grow overflow-y-auto p-4 space-y-4">
+                        {selectedTicket.messages.map((message, index) => (
+                          <div 
+                            key={index}
+                            className={`flex ${message.isAdmin ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div className={`max-w-[80%] ${
+                              message.isAdmin 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-gray-800 text-gray-200'
+                              } rounded-lg p-3`}
+                            >
+                              <div className="flex items-center mb-1">
+                                <span className="text-xs font-medium">
+                                  {message.isAdmin ? 'Admin' : 'User'}
+                                </span>
+                                <span className="text-xs opacity-70 ml-2">
+                                  {message.sender}
+                                </span>
+                              </div>
+                              <p className="text-sm">{message.content}</p>
+                              <div className="text-xs opacity-70 mt-1 text-right">
+                                {message.timestamp ? new Date(message.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        <div ref={messagesEndRef} />
+                      </div>
+                      
+                      {selectedTicket.status === 'open' ? (
+                        <form 
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            if (newMessage.trim()) {
+                              sendAdminMessage(selectedTicket.id, newMessage);
+                            }
+                          }} 
+                          className="p-4 border-t border-gray-800 flex"
+                        >
+                          <textarea
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            placeholder="Type your response..."
+                            className="bg-gray-800 border border-gray-700 rounded-md py-2 px-3 flex-1 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            rows={2}
+                          />
+                          <button
+                            type="submit"
+                            disabled={!newMessage.trim()}
+                            className="ml-3 bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Send size={18} />
+                          </button>
+                        </form>
+                      ) : (
+                        <div className="p-4 border-t border-gray-800 bg-gray-800/50 text-center text-gray-400 text-sm">
+                          This ticket is closed. Reopen it to send a response.
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center p-6">
+                        <MessageSquare size={40} className="mx-auto mb-4 text-gray-600" />
+                        <h3 className="text-xl font-light mb-2">No Ticket Selected</h3>
+                        <p className="text-gray-400 text-sm">
+                          Select a ticket from the list to view details and reply.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

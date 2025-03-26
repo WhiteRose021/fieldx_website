@@ -1,12 +1,18 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { PageTransitionWrapper } from '@/components/page-transition';
-import { ChevronDown, User, BarChart2, Map, Calendar, Settings, LogOut, Menu, X, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { 
+  ChevronDown, User, BarChart2, Map, Calendar, Settings, 
+  LogOut, Menu, X, PlusCircle, MessageSquare, 
+  Clock, CheckCircle, XCircle, Send, RefreshCw, Filter 
+} from 'lucide-react';
+import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 // Type definitions
 interface UserType {
@@ -14,28 +20,27 @@ interface UserType {
   // Add other user properties as needed
 }
 
-interface PlanType {
+interface Message {
+  id?: string;
+  sender: string;
+  content: string;
+  timestamp: Date | any;
+  isAdmin: boolean;
+}
+
+interface Ticket {
   id: string;
-  status: 'active' | 'awaiting' | 'declined';
-  selectedAt?: {
-    seconds: number;
-  };
-}
-
-interface PlanFeatures {
-  name: string;
-  price: string;
-  features: string[];
-}
-
-interface PlansDirectory {
-  [key: string]: PlanFeatures;
+  subject: string;
+  status: 'open' | 'closed';
+  createdAt: Date | any;
+  lastUpdate: Date | any;
+  messages: Message[];
+  userId: string;
 }
 
 interface AuthContextType {
   user: UserType | null;
   loading: boolean;
-  userPlan: PlanType | null;
   logout: () => void;
 }
 
@@ -46,18 +51,32 @@ interface SidebarProps {
   logout: () => void;
 }
 
-interface PlanStatusProps {
-  plan: PlanType | null;
+interface TicketListProps {
+  tickets: Ticket[];
+  selectedTicket: Ticket | null;
+  selectTicket: (ticket: Ticket) => void;
+  isLoading: boolean;
+}
+
+interface TicketDetailProps {
+  ticket: Ticket | null;
+  sendMessage: (content: string) => Promise<void>;
+  closeTicket: () => Promise<void>;
   user: UserType | null;
+}
+
+interface NewTicketFormProps {
+  onCreate: (subject: string, message: string) => Promise<void>;
+  isSubmitting: boolean;
 }
 
 // Sidebar navigation component
 const Sidebar = ({ isOpen, toggleSidebar, logout }: SidebarProps) => {
   const navItems = [
     { icon: BarChart2, label: 'Dashboard', href: '/dashboard' },
+    { icon: MessageSquare, label: 'Support Tickets', href: '/dashboard/tickets' },
     { icon: Map, label: 'Projects', href: '/dashboard/projects' },
     { icon: Calendar, label: 'Schedule', href: '/dashboard/schedule' },
-    { icon: User, label: 'Teams', href: '/dashboard/teams' },
     { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
   ];
 
@@ -130,148 +149,320 @@ const Sidebar = ({ isOpen, toggleSidebar, logout }: SidebarProps) => {
   );
 };
 
-const PlanStatus = ({ plan, user }: PlanStatusProps) => {
-    if (!plan) {
-      return (
-        <div className="bg-gray-900 rounded-lg p-8 border border-gray-800 flex flex-col items-center justify-center text-center h-full min-h-[200px]">
-          <BarChart2 size={48} className="text-gray-500 mb-4" />
-          <h3 className="text-xl font-light mb-2">No Plan Selected</h3>
-          <p className="text-gray-400 text-sm mb-6">You haven't selected a pricing plan yet.</p>
-          <Link href="/apply" className="inline-block">
-            <motion.button
-              className="bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-md font-medium transition-colors"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Choose a Plan
-            </motion.button>
-          </Link>
-        </div>
-      );
-    }
+// Ticket list component
+const TicketList = ({ tickets, selectedTicket, selectTicket, isLoading }: TicketListProps) => {
+  const [filter, setFilter] = useState<'all' | 'open' | 'closed'>('all');
   
-    const plans: PlansDirectory = {
-      basic: {
-        name: 'Basic',
-        price: '49€',
-        features: [
-          'Up to 2 users',
-          'Basic FTTH management tools',
-          'Unlimited projects',
-          'Basic dashboard',
-          'Email support',
-        ]
-      },
-      pro: {
-        name: 'Pro',
-        price: '99€',
-        features: [
-          'Up to 10 users',
-          'Advanced management tools',
-          'Unlimited projects',
-          'Advanced dashboard',
-          'Phone support',
-          'AI suggestions',
-          'API access',
-          'Basic analytics',
-        ]
-      },
-      enterprise: {
-        name: 'Enterprise',
-        price: '249€',
-        features: [
-          'Unlimited users',
-          'Complete management tools',
-          'Unlimited projects',
-          'Custom dashboard',
-          '24/7 dedicated support',
-          'AI suggestions & automation',
-          'Advanced API',
-          'Advanced analytics',
-        ]
-      }
-    };
-  
-    const selectedPlan = plans[plan.id];
-    
-    return (
-      <div className="bg-gray-900 rounded-lg p-8 border border-gray-800">
-        <div className="mb-6 flex items-start justify-between">
-          <div>
-            <h3 className="text-2xl font-light mb-1">{selectedPlan.name} Plan</h3>
-            <div className="mb-2">
-              <span className="text-3xl font-light">{selectedPlan.price}</span>
-              <span className="text-gray-400 text-sm">/ month</span>
-            </div>
-          </div>
-          
-          <div 
-            className={`flex items-center px-3 py-1 rounded-full text-sm ${
-              plan.status === 'active' 
-                ? 'bg-green-500/20 text-green-400' 
-                : plan.status === 'awaiting' 
-                  ? 'bg-yellow-500/20 text-yellow-400'
-                  : 'bg-red-500/20 text-red-400'
-            }`}
-            data-plan-status
+  const filteredTickets = tickets.filter(ticket => {
+    if (filter === 'all') return true;
+    return ticket.status === filter;
+  });
+
+  return (
+    <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+      <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+        <h3 className="text-lg font-light">Your Tickets</h3>
+        <div className="flex items-center space-x-2">
+          <select 
+            className="bg-gray-800 border border-gray-700 rounded-md text-sm p-1.5 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as 'all' | 'open' | 'closed')}
           >
-            {plan.status === 'active' ? (
-              <>
-                <CheckCircle size={16} className="mr-2" />
-                Active
-              </>
-            ) : plan.status === 'awaiting' ? (
-              <>
-                <Clock size={16} className="mr-2" />
-                Awaiting Approval
-              </>
-            ) : (
-              <>
-                <XCircle size={16} className="mr-2" />
-                Declined
-              </>
-            )}
-          </div>
+            <option value="all">All Tickets</option>
+            <option value="open">Open</option>
+            <option value="closed">Closed</option>
+          </select>
+          <Filter size={16} className="text-gray-400" />
         </div>
-        
-        {plan.status === 'awaiting' && (
-          <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-md text-sm">
-            <p className="text-blue-400">
-              Your plan selection is currently awaiting approval from the FieldX team. 
-              We typically process requests within 24 hours.
-              {user?.email === 'garvanitis@applink.gr' && (
-                <span className="block mt-2 italic">
-                  As a developer test account, your plan will be auto-approved shortly.
-                </span>
-              )}
-            </p>
+      </div>
+      
+      <div className="max-h-[500px] overflow-y-auto">
+        {isLoading ? (
+          <div className="p-8 flex justify-center">
+            <RefreshCw size={24} className="text-blue-400 animate-spin" />
           </div>
-        )}
-        
-        <div className="border-t border-gray-800 pt-4">
-          <p className="text-sm font-medium text-gray-300 mb-3">Included Features:</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {selectedPlan.features.map((feature: string, idx: number) => (
-              <div key={idx} className="flex items-start">
-                <CheckCircle size={16} className="text-green-400 mt-0.5 mr-2 flex-shrink-0" />
-                <span className="text-sm text-gray-300">{feature}</span>
-              </div>
+        ) : filteredTickets.length === 0 ? (
+          <div className="p-8 text-center text-gray-400">
+            <MessageSquare size={32} className="mx-auto mb-3 opacity-30" />
+            <p>No tickets found</p>
+            <p className="text-sm mt-1">Create a new ticket to get help</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-800">
+            {filteredTickets.map((ticket) => (
+              <motion.div 
+                key={ticket.id}
+                className={`p-4 cursor-pointer hover:bg-gray-800 transition-colors ${
+                  selectedTicket?.id === ticket.id ? 'bg-gray-800 border-l-4 border-blue-500' : ''
+                }`}
+                onClick={() => selectTicket(ticket)}
+                whileHover={{ x: 5 }}
+              >
+                <div className="flex justify-between mb-2">
+                  <h4 className="font-medium text-gray-200 truncate max-w-[70%]">{ticket.subject}</h4>
+                  <span className={`text-xs py-1 px-2 rounded-full ${
+                    ticket.status === 'open' 
+                      ? 'bg-green-500/20 text-green-400' 
+                      : 'bg-gray-600/20 text-gray-400'
+                  }`}>
+                    {ticket.status === 'open' ? 'Open' : 'Closed'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs text-gray-400">
+                  <div className="flex items-center">
+                    <MessageSquare size={12} className="mr-1" />
+                    <span>{ticket.messages.length} messages</span>
+                  </div>
+                  <span>
+                    {ticket.lastUpdate ? new Date(ticket.lastUpdate.seconds * 1000).toLocaleDateString() : '-'}
+                  </span>
+                </div>
+              </motion.div>
             ))}
-          </div>
-        </div>
-        
-        {plan.selectedAt && (
-          <div className="mt-6 text-xs text-gray-500">
-            Selected on: {new Date(plan.selectedAt.seconds * 1000).toLocaleDateString()}
           </div>
         )}
       </div>
-    );
+    </div>
+  );
+};
+
+// New ticket form
+const NewTicketForm = ({ onCreate, isSubmitting }: NewTicketFormProps) => {
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [errors, setErrors] = useState<{subject?: string, message?: string}>({});
+
+  const validateForm = () => {
+    const newErrors: {subject?: string, message?: string} = {};
+    if (!subject.trim()) newErrors.subject = 'Subject is required';
+    if (!message.trim()) newErrors.message = 'Message is required';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
-  
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateForm()) {
+      await onCreate(subject, message);
+      setSubject('');
+      setMessage('');
+    }
+  };
+
+  return (
+    <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+      <div className="p-4 border-b border-gray-800">
+        <h3 className="text-lg font-light">Create New Ticket</h3>
+      </div>
+      
+      <form onSubmit={handleSubmit} className="p-4">
+        <div className="mb-4">
+          <label htmlFor="subject" className="block text-sm font-medium text-gray-300 mb-2">
+            Subject <span className="text-red-400">*</span>
+          </label>
+          <input
+            type="text"
+            id="subject"
+            value={subject}
+            onChange={(e) => {
+              setSubject(e.target.value);
+              if (errors.subject) setErrors({...errors, subject: undefined});
+            }}
+            className={`bg-gray-800 border ${errors.subject ? 'border-red-400' : 'border-gray-700'} rounded-md py-2 px-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            placeholder="How can we help you?"
+          />
+          {errors.subject && <p className="mt-1 text-sm text-red-400">{errors.subject}</p>}
+        </div>
+        
+        <div className="mb-4">
+          <label htmlFor="message" className="block text-sm font-medium text-gray-300 mb-2">
+            Message <span className="text-red-400">*</span>
+          </label>
+          <textarea
+            id="message"
+            value={message}
+            onChange={(e) => {
+              setMessage(e.target.value);
+              if (errors.message) setErrors({...errors, message: undefined});
+            }}
+            rows={4}
+            className={`bg-gray-800 border ${errors.message ? 'border-red-400' : 'border-gray-700'} rounded-md py-2 px-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            placeholder="Describe your issue in detail..."
+          />
+          {errors.message && <p className="mt-1 text-sm text-red-400">{errors.message}</p>}
+        </div>
+        
+        <motion.button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-md font-medium transition-colors flex items-center justify-center"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          {isSubmitting ? (
+            <span className="flex items-center">
+              <RefreshCw size={18} className="animate-spin mr-2" />
+              Submitting...
+            </span>
+          ) : (
+            <>
+              Create Ticket
+              <PlusCircle size={18} className="ml-2" />
+            </>
+          )}
+        </motion.button>
+      </form>
+    </div>
+  );
+};
+
+// Ticket detail component
+const TicketDetail = ({ ticket, sendMessage, closeTicket, user }: TicketDetailProps) => {
+  const [newMessage, setNewMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [ticket?.messages.length]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+    
+    setIsSubmitting(true);
+    try {
+      await sendMessage(newMessage);
+      setNewMessage('');
+    } catch (error) {
+      console.error('Error sending message:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCloseTicket = async () => {
+    if (window.confirm('Are you sure you want to close this ticket?')) {
+      await closeTicket();
+    }
+  };
+
+  if (!ticket) {
+    return (
+      <div className="bg-gray-900 rounded-lg border border-gray-800 h-full flex items-center justify-center p-8">
+        <div className="text-center">
+          <MessageSquare size={48} className="mx-auto mb-4 text-gray-600" />
+          <h3 className="text-xl font-light mb-2">No Ticket Selected</h3>
+          <p className="text-gray-400 text-sm">
+            Select a ticket from the list or create a new one to get started.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gray-900 rounded-lg border border-gray-800 flex flex-col h-full">
+      <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+        <div>
+          <h3 className="text-lg font-medium">{ticket.subject}</h3>
+          <div className="text-xs text-gray-400 mt-1">
+            Created on {new Date(ticket.createdAt.seconds * 1000).toLocaleString()}
+          </div>
+        </div>
+        <div className="flex items-center space-x-3">
+          <span className={`text-xs py-1 px-2 rounded-full ${
+            ticket.status === 'open' 
+              ? 'bg-green-500/20 text-green-400' 
+              : 'bg-gray-600/20 text-gray-400'
+          }`}>
+            {ticket.status === 'open' ? 'Open' : 'Closed'}
+          </span>
+          {ticket.status === 'open' && (
+            <motion.button
+              onClick={handleCloseTicket}
+              className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 py-1 px-2 rounded-md transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Close Ticket
+            </motion.button>
+          )}
+        </div>
+      </div>
+      
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {ticket.messages.map((message, index) => (
+          <div 
+            key={message.id || index}
+            className={`flex ${message.isAdmin ? 'justify-start' : 'justify-end'}`}
+          >
+            <div className={`max-w-[80%] ${
+              message.isAdmin 
+                ? 'bg-gray-800 text-gray-300' 
+                : 'bg-blue-600 text-white'
+              } rounded-lg p-3`}
+            >
+              <div className="flex items-center mb-1">
+                <span className="text-xs font-medium">
+                  {message.isAdmin ? 'Support Agent' : 'You'}
+                </span>
+              </div>
+              <p className="text-sm">{message.content}</p>
+              <div className="text-xs opacity-70 mt-1 text-right">
+                {message.timestamp ? new Date(message.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
+              </div>
+            </div>
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+      
+      {ticket.status === 'open' ? (
+        <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-800 flex items-end">
+          <textarea
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Type your message..."
+            className="bg-gray-800 border border-gray-700 rounded-md py-2 px-3 flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            rows={3}
+          />
+          <motion.button
+            type="submit"
+            disabled={isSubmitting || !newMessage.trim()}
+            className="ml-3 bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {isSubmitting ? (
+              <RefreshCw size={20} className="animate-spin" />
+            ) : (
+              <Send size={20} />
+            )}
+          </motion.button>
+        </form>
+      ) : (
+        <div className="p-4 border-t border-gray-800 bg-gray-800/50 text-center text-gray-400 text-sm">
+          This ticket is closed. You cannot send more messages.
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { user, loading, userPlan, logout } = useAuth() as AuthContextType;
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [showNewTicketForm, setShowNewTicketForm] = useState(false);
+  
+  const { user, loading, logout } = useAuth() as AuthContextType;
   const router = useRouter();
 
   const toggleSidebar = () => {
@@ -284,6 +475,128 @@ export default function Dashboard() {
       router.push('/login?redirect=dashboard');
     }
   }, [user, loading, router]);
+
+  // Fetch tickets from Firestore
+  useEffect(() => {
+    if (!user?.email) return;
+
+    setIsLoading(true);
+    const ticketsRef = collection(db, 'tickets');
+    const q = query(
+      ticketsRef,
+      where('userId', '==', user.email),
+      orderBy('lastUpdate', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedTickets = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          subject: data.subject,
+          status: data.status,
+          createdAt: data.createdAt,
+          lastUpdate: data.lastUpdate,
+          messages: data.messages || [],
+          userId: data.userId
+        } as Ticket;
+      });
+      
+      setTickets(fetchedTickets);
+      
+      // Update selected ticket if it's in the list
+      if (selectedTicket) {
+        const updatedSelectedTicket = fetchedTickets.find(t => t.id === selectedTicket.id);
+        if (updatedSelectedTicket) {
+          setSelectedTicket(updatedSelectedTicket);
+        }
+      }
+      
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Error fetching tickets:", error);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user, selectedTicket]);
+
+  const createTicket = async (subject: string, message: string) => {
+    if (!user?.email) return;
+    
+    try {
+      setIsCreatingTicket(true);
+      
+      const now = serverTimestamp();
+      const newTicket = {
+        subject,
+        status: 'open',
+        createdAt: now,
+        lastUpdate: now,
+        userId: user.email,
+        messages: [{
+          sender: user.email,
+          content: message,
+          timestamp: now,
+          isAdmin: false
+        }]
+      };
+      
+      const docRef = await addDoc(collection(db, 'tickets'), newTicket);
+      setShowNewTicketForm(false);
+      
+      // The ticket will be added to the list by the onSnapshot listener
+    } catch (error) {
+      console.error('Error creating ticket:', error);
+      alert('Failed to create ticket. Please try again.');
+    } finally {
+      setIsCreatingTicket(false);
+    }
+  };
+
+  const sendMessage = async (content: string) => {
+    if (!selectedTicket || !user?.email) return;
+    
+    try {
+      const ticketRef = doc(db, 'tickets', selectedTicket.id);
+      const now = serverTimestamp();
+      
+      const newMessage = {
+        sender: user.email,
+        content,
+        timestamp: now,
+        isAdmin: false
+      };
+      
+      // Add the new message to the messages array
+      await updateDoc(ticketRef, {
+        messages: [...selectedTicket.messages, newMessage],
+        lastUpdate: now
+      });
+      
+      // The ticket will be updated by the onSnapshot listener
+    } catch (error) {
+      console.error('Error sending message:', error);
+      throw error;
+    }
+  };
+
+  const closeTicket = async () => {
+    if (!selectedTicket) return;
+    
+    try {
+      const ticketRef = doc(db, 'tickets', selectedTicket.id);
+      await updateDoc(ticketRef, {
+        status: 'closed',
+        lastUpdate: serverTimestamp()
+      });
+      
+      // The ticket will be updated by the onSnapshot listener
+    } catch (error) {
+      console.error('Error closing ticket:', error);
+      alert('Failed to close ticket. Please try again.');
+    }
+  };
 
   if (loading) {
     return (
@@ -322,123 +635,56 @@ export default function Dashboard() {
         
         {/* Main content */}
         <main className="flex-1 md:ml-64 p-6">
-          <div className="mb-8">
-            <h1 className="text-3xl font-light">Dashboard</h1>
-            <p className="text-gray-400 mt-2">Welcome back to your FieldX management dashboard</p>
+          <div className="mb-8 flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-light">Support Tickets</h1>
+              <p className="text-gray-400 mt-2">Manage your support tickets and get help from our team</p>
+            </div>
+            
+            <motion.button
+              onClick={() => setShowNewTicketForm(!showNewTicketForm)}
+              className="bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-md font-medium transition-colors flex items-center"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {showNewTicketForm ? 'Cancel' : 'New Ticket'}
+              {!showNewTicketForm && <PlusCircle size={18} className="ml-2" />}
+            </motion.button>
           </div>
           
-          {/* Pricing Plan Section */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-light">Your Subscription</h2>
-              {userPlan && (
-                <Link href="/apply">
-                  <span className="text-blue-400 hover:text-blue-300 text-sm font-medium">
-                    Change Plan
-                  </span>
-                </Link>
+          {showNewTicketForm ? (
+            <div className="mb-8">
+              <NewTicketForm
+                onCreate={createTicket}
+                isSubmitting={isCreatingTicket}
+              />
+            </div>
+          ) : (
+            <div className="mb-4 md:mb-8">
+              {user?.email === 'garvanitis@applink.gr' && (
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-md p-4 mb-6">
+                  <p className="text-blue-400 text-sm">
+                    <span className="font-medium">Developer Account:</span> You are currently logged in as the administrator test account.
+                  </p>
+                </div>
               )}
             </div>
-            
-            <PlanStatus plan={userPlan} user={user} />
-          </div>
+          )}
           
-          {/* Quick Stats */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-light">Quick Stats</h2>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <TicketList
+              tickets={tickets}
+              selectedTicket={selectedTicket}
+              selectTicket={setSelectedTicket}
+              isLoading={isLoading}
+            />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-gray-400 text-sm">Total Projects</p>
-                    <h3 className="text-2xl font-light mt-2">0</h3>
-                  </div>
-                  <div className="bg-gray-800 p-3 rounded-lg">
-                    <Map size={20} className="text-blue-400" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-gray-400 text-sm">Active Tasks</p>
-                    <h3 className="text-2xl font-light mt-2">0</h3>
-                  </div>
-                  <div className="bg-gray-800 p-3 rounded-lg">
-                    <Calendar size={20} className="text-blue-400" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-gray-400 text-sm">Team Members</p>
-                    <h3 className="text-2xl font-light mt-2">1</h3>
-                  </div>
-                  <div className="bg-gray-800 p-3 rounded-lg">
-                    <User size={20} className="text-blue-400" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-gray-400 text-sm">Notifications</p>
-                    <h3 className="text-2xl font-light mt-2">0</h3>
-                  </div>
-                  <div className="bg-gray-800 p-3 rounded-lg">
-                    <BarChart2 size={20} className="text-blue-400" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Get Started Section */}
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-light">Get Started</h2>
-            </div>
-            
-            <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
-              <div className="p-6 space-y-6">
-                <div className="flex items-start space-x-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                    <User size={16} className="text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-300">Complete your profile setup</p>
-                    <p className="text-xs text-gray-500 mt-1">Add your company information and team members</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                    <Map size={16} className="text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-300">Create your first project</p>
-                    <p className="text-xs text-gray-500 mt-1">Set up your first FTTH deployment project</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                    <Calendar size={16} className="text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-300">Schedule your first task</p>
-                    <p className="text-xs text-gray-500 mt-1">Use the AI scheduler to optimize your field team's work</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <TicketDetail
+              ticket={selectedTicket}
+              sendMessage={sendMessage}
+              closeTicket={closeTicket}
+              user={user}
+            />
           </div>
         </main>
       </div>
