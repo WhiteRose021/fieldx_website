@@ -29,6 +29,13 @@ interface UserMenuProps {
   logout: () => void;
 }
 
+interface FeatureCardProps {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  delay?: number;
+}
+
 // Interactive Gravity Element component with Starry FieldX Animation
 const GravityElement = () => {
   const constraintsRef = useRef(null)
@@ -203,7 +210,7 @@ const UserMenu = ({ user, logout }: UserMenuProps) => {
 };
 
 // Feature Card Component
-const FeatureCard = ({ icon: Icon, title, description, delay = 0 }) => {
+const FeatureCard = ({ icon: Icon, title, description, delay = 0 }: FeatureCardProps) => {
   return (
     <motion.div
       className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-6 flex flex-col items-center"
@@ -836,12 +843,12 @@ export default function Home() {
                 <h3 className="text-sm uppercase tracking-wider mb-4">Legal</h3>
                 <ul className="space-y-2 text-gray-400 text-sm">
                   <motion.li whileHover={{ y: -2 }} className="flex justify-center">
-                    <Link href="#" className="hover:text-blue-400 transition-colors">
+                  <Link href="/privacy-policy" className="hover:text-blue-400 transition-colors">
                       Privacy Policy
                     </Link>
                   </motion.li>
                   <motion.li whileHover={{ y: -2 }} className="flex justify-center">
-                    <Link href="#" className="hover:text-blue-400 transition-colors">
+                    <Link href="/terms-of-service" className="hover:text-blue-400 transition-colors">
                       Terms of Service
                     </Link>
                   </motion.li>
@@ -850,7 +857,7 @@ export default function Home() {
             </div>
 
             <div className="border-t border-white/10 pt-8 text-center text-xs text-gray-500">
-              <p>© {new Date().getFullYear()} FieldX. All rights reserved.</p>
+              <p>© {new Date().getFullYear()} Arvanitis G. All rights reserved.</p>
             </div>
           </div>
         </footer>

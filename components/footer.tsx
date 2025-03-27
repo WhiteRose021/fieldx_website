@@ -126,7 +126,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-12 pt-8 text-center text-sm">
-          <p>&copy; {new Date().getFullYear()} FieldX. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Arvanitis G. All rights reserved.</p>
         </div>
       </div>
     </footer>

@@ -231,7 +231,7 @@ const MainMenu = ({ isOpen, onClose }) => {
                 className="mt-10 text-center text-gray-500 text-sm"
                 variants={itemVariants}
               >
-                <p>&copy; {new Date().getFullYear()} FieldX. All rights reserved.</p>
+                <p>&copy; {new Date().getFullYear()} Arvanitis G. All rights reserved.</p>
               </motion.div>
             </div>
           </motion.div>

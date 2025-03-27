@@ -1,11 +1,19 @@
 "use client"
 
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { PageTransitionWrapper } from '@/components/page-transition';
 import { ChevronLeft } from 'lucide-react';
+
+// Add a minimal interface to remove TypeScript errors
+interface AuthContextValue {
+  register: (email: string, password: string) => Promise<{
+    user: any;
+    error: string | null;
+  }>;
+}
 
 export default function Register() {
   const [email, setEmail] = useState('');
@@ -13,9 +21,9 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { register } = useAuth();
+  const { register } = useAuth() as AuthContextValue;
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     
@@ -234,7 +242,7 @@ export default function Register() {
                 transition={{ delay: 0.5 }}
               >
                 By creating an account, you agree to FieldX's{' '}
-                <Link href="/terms" className="text-blue-400 hover:text-blue-300 transition-colors">
+                <Link href="/terms-of-service" className="text-blue-400 hover:text-blue-300 transition-colors">
                   Terms of Service
                 </Link>{' '}
                 and{' '}
