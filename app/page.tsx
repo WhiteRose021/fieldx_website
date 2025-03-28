@@ -7,7 +7,7 @@ import Link from "next/link"
 import MainMenu from "@/components/main-menu"
 import { motion, useAnimation, useSpring, useMotionValue, useTransform } from "framer-motion"
 import FuturisticLights from "@/components/futuristic-lights"
-import OpticalFiberAnimation from "@/components/optical-fiber-animation"
+// Removed OpticalFiberAnimation import
 import CookieConsent from "@/components/cookie-consent"
 import { PageTransitionWrapper } from "@/components/page-transition"
 import PricingPlans from "@/components/pricing-plans"
@@ -36,134 +36,158 @@ interface FeatureCardProps {
   delay?: number;
 }
 
-// Interactive Gravity Element component with Starry FieldX Animation
+// FIXED GravityElement component
 const GravityElement = () => {
   const constraintsRef = useRef(null)
-  const x = useMotionValue(0)
-  const y = useMotionValue(0)
   const [mounted, setMounted] = useState(false)
   
-  // Create spring physics for the element
+  // Initialize motion values at the top level of the component
+  // This is the correct way according to React's Rules of Hooks
+  const x = useMotionValue(0)
+  const y = useMotionValue(0)
   const springX = useSpring(x, { stiffness: 300, damping: 20 })
   const springY = useSpring(y, { stiffness: 300, damping: 20 })
   
   useEffect(() => {
+    // Safe to manipulate motion values here, but no NEW hooks
     setMounted(true)
     
-    // Add a subtle animation to make the element more noticeable
+    // Use stable values instead of random for the subtle animation
     const interval = setInterval(() => {
-      x.set(Math.random() * 10 - 5)
-      y.set(Math.random() * 10 - 5)
+      // Use sine/cosine for deterministic movement instead of random
+      const time = Date.now() / 1000
+      x.set(Math.sin(time) * 5)
+      y.set(Math.cos(time) * 5)
     }, 3000)
     
     return () => clearInterval(interval)
-  }, [])
+  }, [x, y]) // Include x and y in the dependency array
+  
+  // Return skeleton/placeholder when not mounted (server-side)
+  if (!mounted) {
+    return (
+      <div className="gravity-container w-full flex items-center justify-center">
+        <div className="relative flex items-center justify-center">
+          <div className="text-7xl font-light tracking-wide select-none bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+            <span className="relative inline-block">
+              Field<span className="font-normal">X</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    )
+  }
   
   return (
     <motion.div ref={constraintsRef} className="gravity-container w-full flex items-center justify-center">
-      {mounted && (
-        <div className="relative flex items-center justify-center">
-          {/* Starry FieldX Animation */}
-          <motion.div
-            className="absolute"
-            initial={{ opacity: 0 }}
-            animate={{ 
-              opacity: [0, 0.7, 0.4, 0.7, 0],
-            }}
-            transition={{ 
-              repeat: Infinity,
-              duration: 10,
-              ease: "easeInOut",
-              times: [0, 0.3, 0.5, 0.7, 1]
-            }}
-          >
-            <div className="relative">
-              <div className="text-9xl md:text-[10rem] font-light tracking-wide select-none text-transparent bg-clip-text bg-gradient-to-r from-blue-100/20 to-blue-300/20 opacity-30 relative z-10">
-                Field<span className="font-normal">X</span>
-              </div>
-              
-              {/* Star particles effect */}
-              <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-                {[...Array(150)].map((_, i) => (
+      <div className="relative flex items-center justify-center">
+        {/* Starry FieldX Animation */}
+        <motion.div
+          className="absolute"
+          initial={{ opacity: 0 }}
+          animate={{ 
+            opacity: [0, 0.7, 0.4, 0.7, 0],
+          }}
+          transition={{ 
+            repeat: Infinity,
+            duration: 10,
+            ease: "easeInOut",
+            times: [0, 0.3, 0.5, 0.7, 1]
+          }}
+        >
+          <div className="relative">
+            <div className="text-9xl md:text-[10rem] font-light tracking-wide select-none text-transparent bg-clip-text bg-gradient-to-r from-blue-100/20 to-blue-300/20 opacity-30 relative z-10">
+              Field<span className="font-normal">X</span>
+            </div>
+            
+            {/* Fix star particles to use consistent seeds instead of random */}
+            <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+              {Array.from({ length: 50 }).map((_, i) => {
+                // Use index to create deterministic but varied positions
+                const xPos = (i % 10) * 10
+                const yPos = Math.floor(i / 10) * 10
+                const scale = 0.5 + (i % 3) * 0.5
+                const duration = 3 + (i % 5)
+                const delay = (i % 10) * 0.5
+                
+                return (
                   <motion.div
                     key={i}
                     className="absolute h-0.5 w-0.5 rounded-full bg-blue-100"
                     style={{
-                      top: `${Math.random() * 100}%`,
-                      left: `${Math.random() * 100}%`,
-                      scale: Math.random() * 1.5,
+                      top: `${yPos}%`,
+                      left: `${xPos}%`,
+                      scale: scale,
                     }}
                     animate={{
                       opacity: [0, 0.7, 0],
-                      scale: [0, Math.random() * 2, 0],
+                      scale: [0, scale * 2, 0],
                     }}
                     transition={{
                       repeat: Infinity,
-                      duration: Math.random() * 4 + 3,
-                      delay: Math.random() * 5,
+                      duration: duration,
+                      delay: delay,
                       ease: "easeInOut"
                     }}
                   />
-                ))}
-              </div>
+                )
+              })}
             </div>
-          </motion.div>
+          </div>
+        </motion.div>
 
-          {/* Original draggable FieldX logo */}
-          <motion.div 
-            className="gravity-element flex items-center justify-center pointer-events-auto cursor-grab relative"
-            style={{ x: springX, y: springY }}
-            drag
-            dragTransition={{ bounceStiffness: 300, bounceDamping: 20 }}
-            dragElastic={0.2}
-            whileDrag={{ cursor: "grabbing", scale: 1.05 }}
-            whileHover={{ scale: 1.1 }}
+        {/* Original draggable FieldX logo */}
+        <motion.div 
+          className="gravity-element flex items-center justify-center pointer-events-auto cursor-grab relative"
+          style={{ x: springX, y: springY }}
+          drag
+          dragTransition={{ bounceStiffness: 300, bounceDamping: 20 }}
+          dragElastic={0.2}
+          whileDrag={{ cursor: "grabbing", scale: 1.05 }}
+          whileHover={{ scale: 1.1 }}
+        >
+          <motion.div
+            className="text-7xl font-light tracking-wide select-none bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent"
+            style={{
+              filter: "drop-shadow(0 0 15px rgba(255, 255, 255, 0.5))"
+            }}
           >
-            <motion.div
-              className="text-7xl font-light tracking-wide select-none bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent"
-              style={{
-                filter: "drop-shadow(0 0 15px rgba(255, 255, 255, 0.5))"
+            <motion.span 
+              className="relative inline-block"
+              animate={{
+                filter: [
+                  "drop-shadow(0 0 5px rgba(255, 255, 255, 0.3))",
+                  "drop-shadow(0 0 15px rgba(255, 255, 255, 0.7))",
+                  "drop-shadow(0 0 5px rgba(255, 255, 255, 0.3))"
+                ]
+              }}
+              transition={{ 
+                repeat: Infinity, 
+                duration: 3,
+                ease: "easeInOut"
               }}
             >
-              <motion.span 
-                className="relative inline-block"
-                animate={{
-                  filter: [
-                    "drop-shadow(0 0 5px rgba(255, 255, 255, 0.3))",
-                    "drop-shadow(0 0 15px rgba(255, 255, 255, 0.7))",
-                    "drop-shadow(0 0 5px rgba(255, 255, 255, 0.3))"
-                  ]
-                }}
-                transition={{ 
-                  repeat: Infinity, 
-                  duration: 3,
-                  ease: "easeInOut"
-                }}
-              >
-                Field<span className="font-normal">X</span>
-              </motion.span>
-            </motion.div>
+              Field<span className="font-normal">X</span>
+            </motion.span>
           </motion.div>
-          
-          <motion.div 
-            className="absolute inset-0 -z-10"
-            animate={{ 
-              boxShadow: ["0px 0px 0px rgba(59, 130, 246, 0)", "0px 0px 30px rgba(59, 130, 246, 0.2)", "0px 0px 0px rgba(59, 130, 246, 0)"],
-            }}
-            transition={{
-              repeat: Infinity,
-              duration: 3,
-            }}
-          ></motion.div>
-          
-          <FuturisticLights />
-        </div>
-      )}
+        </motion.div>
+        
+        <motion.div 
+          className="absolute inset-0 -z-10"
+          animate={{ 
+            boxShadow: ["0px 0px 0px rgba(59, 130, 246, 0)", "0px 0px 30px rgba(59, 130, 246, 0.2)", "0px 0px 0px rgba(59, 130, 246, 0)"],
+          }}
+          transition={{
+            repeat: Infinity,
+            duration: 3,
+          }}
+        ></motion.div>
+      </div>
     </motion.div>
   )
 }
 
-// User Menu Dropdown Component (without user image)
+// User Menu Dropdown Component
 const UserMenu = ({ user, logout }: UserMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   
@@ -241,6 +265,21 @@ const FeatureCard = ({ icon: Icon, title, description, delay = 0 }: FeatureCardP
   );
 };
 
+// Add a client-side only footer component for date handling
+const FooterWithYear = () => {
+  const [year, setYear] = useState("2025");
+  
+  useEffect(() => {
+    setYear(new Date().getFullYear().toString());
+  }, []);
+  
+  return (
+    <div className="border-t border-white/10 pt-8 text-center text-xs text-gray-500">
+      <p>© {year} Arvanitis G. All rights reserved.</p>
+    </div>
+  );
+};
+
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -272,6 +311,7 @@ export default function Home() {
   return (
     <PageTransitionWrapper>
       <div className="min-h-screen bg-black text-white overflow-x-hidden">
+      <FuturisticLights />
         <CookieConsent />
         
         {/* White Taskbar Header */}
@@ -613,90 +653,121 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Features Section */}
+        {/* Features Section - Centered (Modified to remove optical animation) */}
         <section id="features" className="py-24 bg-black">
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                whileInView={{ opacity: 1, x: 0 }}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="text-center max-w-3xl mx-auto mb-10"
+            >
+              <h2 className="text-4xl font-light mb-6">Designed for FTTH Excellence</h2>
+              <p className="text-lg text-gray-400 mb-8">
+                FieldX combines cutting-edge technology with industry-specific tools to streamline your fiber deployment
+                projects from planning to completion.
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+              <motion.div 
+                className="border-t border-white/20 pt-4 group"
+                whileHover={{ y: -10, borderColor: "rgba(96, 165, 250, 0.5)" }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.8 }}
-                className="text-center md:text-left"
+                transition={{ delay: 0.1, duration: 0.6 }}
               >
-                <h2 className="text-4xl font-light mb-6">Designed for FTTH Excellence</h2>
-                <p className="text-lg text-gray-400 mb-8">
-                  FieldX combines cutting-edge technology with industry-specific tools to streamline your fiber deployment
-                  projects from planning to completion.
+                <h3 className="text-xl font-light mb-2 group-hover:text-blue-400 transition-colors text-center">
+                  Comprehensive Office Tools
+                </h3>
+                <p className="text-gray-400 text-sm text-center">
+                  All the tools office engineers need to manage projects efficiently from planning to completion.
                 </p>
-
-                <div className="space-y-6">
-                  <motion.div 
-                    className="border-t border-white/20 pt-4 group"
-                    whileHover={{ x: 10, borderColor: "rgba(96, 165, 250, 0.5)" }}
-                  >
-                    <h3 className="text-xl font-light mb-2 group-hover:text-blue-400 transition-colors">
-                      Comprehensive Office Tools
-                    </h3>
-                    <p className="text-gray-400 text-sm">
-                      All the tools office engineers need to manage projects efficiently from planning to completion.
-                    </p>
-                  </motion.div>
-
-                  <motion.div 
-                    className="border-t border-white/20 pt-4 group"
-                    whileHover={{ x: 10, borderColor: "rgba(96, 165, 250, 0.5)" }}
-                  >
-                    <h3 className="text-xl font-light mb-2 group-hover:text-blue-400 transition-colors">
-                      Advanced Analytics
-                    </h3>
-                    <p className="text-gray-400 text-sm">
-                      Gain insights into project performance, team productivity, and resource allocation.
-                    </p>
-                  </motion.div>
-
-                  <motion.div 
-                    className="border-t border-white/20 pt-4 group"
-                    whileHover={{ x: 10, borderColor: "rgba(96, 165, 250, 0.5)" }}
-                  >
-                    <h3 className="text-xl font-light mb-2 group-hover:text-blue-400 transition-colors">
-                      Streamlined Workflows
-                    </h3>
-                    <p className="text-gray-400 text-sm">
-                      Optimize your processes with customizable workflows designed for FTTH projects.
-                    </p>
-                  </motion.div>
-                </div>
               </motion.div>
 
               <motion.div 
-                className="relative flex justify-center"
-                initial={{ opacity: 0, x: 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
+                className="border-t border-white/20 pt-4 group"
+                whileHover={{ y: -10, borderColor: "rgba(96, 165, 250, 0.5)" }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.8 }}
+                transition={{ delay: 0.2, duration: 0.6 }}
               >
-                <motion.div
-                  className="h-[500px] md:h-[600px] w-full overflow-hidden rounded-lg shadow-2xl"
-                  whileHover={{ scale: 1.03 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 15 }}
-                >
-                  <OpticalFiberAnimation />
-                </motion.div>
-                <motion.div 
-                  className="absolute -inset-4 rounded-lg bg-blue-500/20 -z-10"
-                  animate={{ 
-                    boxShadow: ["0px 0px 0px rgba(59, 130, 246, 0)", "0px 0px 50px rgba(59, 130, 246, 0.3)", "0px 0px 0px rgba(59, 130, 246, 0)"],
-                  }}
-                  transition={{
-                    boxShadow: {
-                      repeat: Infinity,
-                      duration: 3,
-                    },
-                  }}
-                ></motion.div>
+                <h3 className="text-xl font-light mb-2 group-hover:text-blue-400 transition-colors text-center">
+                  Advanced Analytics
+                </h3>
+                <p className="text-gray-400 text-sm text-center">
+                  Gain insights into project performance, team productivity, and resource allocation.
+                </p>
+              </motion.div>
+
+              <motion.div 
+                className="border-t border-white/20 pt-4 group"
+                whileHover={{ y: -10, borderColor: "rgba(96, 165, 250, 0.5)" }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3, duration: 0.6 }}
+              >
+                <h3 className="text-xl font-light mb-2 group-hover:text-blue-400 transition-colors text-center">
+                  Streamlined Workflows
+                </h3>
+                <p className="text-gray-400 text-sm text-center">
+                  Optimize your processes with customizable workflows designed for FTTH projects.
+                </p>
               </motion.div>
             </div>
+            
+            {/* Added a decorative element to fill the gap left by OpticalFiberAnimation */}
+            <motion.div 
+              className="relative flex justify-center mt-16"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+            >
+              <div className="w-full max-w-3xl py-12">
+                <motion.div 
+                  className="border border-blue-500/20 rounded-2xl p-8 bg-blue-500/5 backdrop-blur-sm text-center relative overflow-hidden"
+                  whileHover={{ boxShadow: "0px 0px 30px rgba(59, 130, 246, 0.2)" }}
+                >
+                  <motion.div 
+                    className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/10 to-blue-600/10 rounded-2xl blur-md -z-10"
+                    animate={{ 
+                      opacity: [0.5, 0.8, 0.5],
+                    }}
+                    transition={{ repeat: Infinity, duration: 3 }}
+                  />
+                  
+                  <motion.h3 
+                    className="text-2xl md:text-3xl font-light mb-4 text-blue-50"
+                    animate={{ 
+                      textShadow: ["0px 0px 0px rgba(59, 130, 246, 0)", "0px 0px 10px rgba(59, 130, 246, 0.5)", "0px 0px 0px rgba(59, 130, 246, 0)"]
+                    }}
+                    transition={{ repeat: Infinity, duration: 3 }}
+                  >
+                    Ready to Transform Your FTTH Operations?
+                  </motion.h3>
+                  
+                  <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
+                    FieldX provides telecommunications companies with powerful tools to streamline deployment, 
+                    reduce administrative overhead, and improve team coordination.
+                  </p>
+                  
+                  <Link href={user ? "/dashboard" : "/apply"}>
+                    <motion.button 
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 rounded-lg font-medium"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {user ? "Go to Dashboard" : "Start Free Trial"}
+                    </motion.button>
+                  </Link>
+                </motion.div>
+              </div>
+            </motion.div>
           </div>
         </section>
         
@@ -856,9 +927,8 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="border-t border-white/10 pt-8 text-center text-xs text-gray-500">
-              <p>© {new Date().getFullYear()} Arvanitis G. All rights reserved.</p>
-            </div>
+            {/* Use client-side only footer to avoid date hydration issues */}
+            <FooterWithYear />
           </div>
         </footer>
       </div>

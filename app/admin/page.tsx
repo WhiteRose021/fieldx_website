@@ -9,7 +9,7 @@ import { PageTransitionWrapper } from '@/components/page-transition';
 import Header from '@/components/header';
 import { 
   ChevronLeft, Edit, CheckCircle, XCircle, Clock, User, Search, 
-  ChevronDown, Phone, Mail, MessageSquare, X, Send, RefreshCw, Filter 
+  ChevronDown, Phone, Mail, MessageSquare, X, Send, RefreshCw, Filter, Download , Zap
 } from 'lucide-react';
 import { JSX } from 'react/jsx-runtime';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, where, serverTimestamp } from 'firebase/firestore';
@@ -47,6 +47,7 @@ interface LeadType {
     seconds: number;
     nanoseconds: number;
   };
+  pricingPlan?: string; // Added field for pricing plan
 }
 
 interface Message {
@@ -93,7 +94,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<UserPlanType[]>([]);
   const [leads, setLeads] = useState<LeadType[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [activeTab, setActiveTab] = useState<'users' | 'leads' | 'tickets'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'leads' | 'tickets'>('leads'); // Default to leads tab
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [editingUser, setEditingUser] = useState<string | null>(null);
@@ -106,6 +107,8 @@ export default function AdminDashboard() {
   const [ticketFilterStatus, setTicketFilterStatus] = useState<'all' | 'open' | 'closed'>('all');
   const [isLoadingTickets, setIsLoadingTickets] = useState<boolean>(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [leadFilterPlan, setLeadFilterPlan] = useState<'all' | 'freemium'>('all');
+  const [downloadingJson, setDownloadingJson] = useState<string | null>(null);
 
   // Check if user is admin
   useEffect(() => {
@@ -192,6 +195,70 @@ export default function AdminDashboard() {
     return unsubscribe;
   };
 
+  // Download application JSON file
+// Replace the downloadApplicationJson function in your admin/page.tsx file
+
+const downloadApplicationJson = async (leadId: string, email: string) => {
+  try {
+    setDownloadingJson(leadId);
+    
+    // Create a simpler JSON directly from the lead data
+    // This approach doesn't require a separate API endpoint
+    const lead = leads.find(l => l.id === leadId);
+    
+    if (!lead) {
+      throw new Error('Application data not found');
+    }
+    
+    // Format the data
+    const formattedEmail = email.replace(/[^a-zA-Z0-9]/g, '_');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `application_${formattedEmail}_${timestamp}.json`;
+    
+    // Create the application JSON structure
+    const applicationData = {
+      inquiryId: leadId,
+      timestamp: new Date().toISOString(),
+      userData: {
+        email: lead.email || '',
+        name: lead.name || '',
+        surname: lead.surname || '',
+        company: lead.company || '',
+        phone: lead.phone || '',
+        description: lead.description || ''
+      },
+      plan: {
+        type: lead.pricingPlan || lead.planId || 'standard',
+        duration: lead.pricingPlan === 'freemium' ? '28 days' : 'custom'
+      },
+      status: lead.status || 'pending',
+      createdAt: lead.createdAt 
+        ? new Date(lead.createdAt.seconds * 1000).toISOString()
+        : new Date().toISOString()
+    };
+    
+    // Create a blob with the JSON data
+    const blob = new Blob([JSON.stringify(applicationData, null, 2)], { type: 'application/json' });
+    
+    // Create a download link and trigger the download
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    
+    // Clean up
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+  } catch (error) {
+    console.error('Error creating application JSON:', error);
+    alert('Failed to download application data. Please try again.');
+  } finally {
+    setDownloadingJson(null);
+  }
+};
   const sendAdminMessage = async (ticketId: string, content: string) => {
     if (!user?.email || !content.trim()) return;
     
@@ -258,9 +325,17 @@ export default function AdminDashboard() {
     );
   });
 
-  // Filter leads based on search query
+  // Filter leads based on search query and plan filter
   const filteredLeads = leads.filter(lead => {
     if (!lead) return false;
+    
+    // First filter by plan type if not "all"
+    if (leadFilterPlan !== 'all' && (lead.pricingPlan?.toLowerCase() !== leadFilterPlan)) {
+      return false;
+    }
+    
+    // Then filter by search term
+    if (!searchQuery) return true;
     
     const email = lead.email || '';
     const name = lead.name || '';
@@ -355,7 +430,8 @@ export default function AdminDashboard() {
       contacted: 'bg-purple-500/20 text-purple-400',
       converted: 'bg-green-500/20 text-green-400',
       closed: 'bg-gray-500/20 text-gray-400',
-      open: 'bg-green-500/20 text-green-400'
+      open: 'bg-green-500/20 text-green-400',
+      freemium: 'bg-blue-500/20 text-blue-400'
     };
     
     const statusIcons: Record<string, JSX.Element> = {
@@ -366,7 +442,8 @@ export default function AdminDashboard() {
       contacted: <User size={16} className="mr-2" />,
       converted: <CheckCircle size={16} className="mr-2" />,
       closed: <XCircle size={16} className="mr-2" />,
-      open: <CheckCircle size={16} className="mr-2" />
+      open: <CheckCircle size={16} className="mr-2" />,
+      freemium: <Zap size={16} className="mr-2" />
     };
 
     return (
@@ -575,128 +652,173 @@ export default function AdminDashboard() {
             
             {/* Leads Tab */}
             {activeTab === 'leads' && (
-              <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-800">
-                    <thead className="bg-gray-900">
-                      <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                          Contact
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                          Company
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                          Plan
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                          Date
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-gray-900 divide-y divide-gray-800">
-                      {filteredLeads.length > 0 ? (
-                        filteredLeads.map((lead) => (
-                          <tr key={lead.id || Math.random().toString()}>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <div className="flex-shrink-0 h-10 w-10 bg-purple-500 rounded-full flex items-center justify-center">
-                                  <span className="font-medium text-white">
-                                    {((lead.name || '?').charAt(0) || 'L').toUpperCase()}
-                                  </span>
-                                </div>
-                                <div className="ml-4">
-                                  <div className="text-sm font-medium text-white">
-                                    {lead.name || ''} {lead.surname || ''}
+              <div>
+                {/* Filter bar for lead types */}
+                <div className="mb-4 flex justify-between items-center">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-400">Filter by plan:</span>
+                    <select 
+                      className="bg-gray-800 border border-gray-700 rounded-md text-sm p-1.5 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={leadFilterPlan}
+                      onChange={(e) => setLeadFilterPlan(e.target.value as 'all' | 'freemium')}
+                    >
+                      <option value="all">All Applications</option>
+                      <option value="freemium">Freemium Only</option>
+                    </select>
+                    <Filter size={16} className="text-gray-400" />
+                  </div>
+                  
+                  {/* Counter for applications */}
+                  <div className="text-sm text-gray-400">
+                    <span className="font-medium text-white">{filteredLeads.length}</span> applications
+                    {leadFilterPlan !== 'all' && (
+                      <span> (filtered by {leadFilterPlan})</span>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-800">
+                      <thead className="bg-gray-900">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Contact
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Company
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Plan
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Date
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-gray-900 divide-y divide-gray-800">
+                        {filteredLeads.length > 0 ? (
+                          filteredLeads.map((lead) => (
+                            <tr key={lead.id || Math.random().toString()}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <div className="flex-shrink-0 h-10 w-10 bg-purple-500 rounded-full flex items-center justify-center">
+                                    <span className="font-medium text-white">
+                                      {((lead.name || '?').charAt(0) || 'L').toUpperCase()}
+                                    </span>
                                   </div>
-                                  <div className="text-sm text-gray-400">{lead.email || ''}</div>
-                                  <div className="text-sm text-gray-400">{lead.phone || ''}</div>
+                                  <div className="ml-4">
+                                    <div className="text-sm font-medium text-white">
+                                      {lead.name || ''} {lead.surname || ''}
+                                    </div>
+                                    <div className="text-sm text-gray-400">{lead.email || ''}</div>
+                                    <div className="text-sm text-gray-400">{lead.phone || ''}</div>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-white">{lead.company || ''}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-white capitalize">{lead.planId || ''}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {editingLead === lead.id ? (
-                                <div className="relative">
-                                  <select
-                                    value={editLeadStatus}
-                                    onChange={(e) => setEditLeadStatus(e.target.value as 'new' | 'contacted' | 'converted' | 'closed')}
-                                    className="bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-1 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  >
-                                    <option value="new">New</option>
-                                    <option value="contacted">Contacted</option>
-                                    <option value="converted">Converted</option>
-                                    <option value="closed">Closed</option>
-                                  </select>
-                                  <ChevronDown size={16} className="text-gray-400 absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />
-                                </div>
-                              ) : (
-                                <StatusBadge status={lead.status || 'new'} />
-                              )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                              {lead.createdAt ? new Date(lead.createdAt.seconds * 1000).toLocaleDateString() : '-'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <div className="flex justify-end space-x-2">
-                                {editingLead === lead.id ? (
-                                  <>
-                                    <button
-                                      onClick={() => handleUpdateLeadStatus(lead.id, editLeadStatus)}
-                                      className="text-green-400 hover:text-green-300"
-                                    >
-                                      Save
-                                    </button>
-                                    <button
-                                      onClick={() => setEditingLead(null)}
-                                      className="text-red-400 hover:text-red-300"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-white">{lead.company || ''}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {lead.pricingPlan?.toLowerCase() === 'freemium' ? (
+                                  <StatusBadge status="freemium" />
                                 ) : (
-                                  <>
-                                    <button
-                                      onClick={() => {
-                                        setEditingLead(lead.id);
-                                        setEditLeadStatus(lead.status);
-                                      }}
-                                      className="text-blue-400 hover:text-blue-300"
-                                    >
-                                      <Edit size={16} />
-                                    </button>
-                                    <button
-                                      onClick={() => setViewingLead(lead)}
-                                      className="text-blue-400 hover:text-blue-300 ml-2"
-                                    >
-                                      <MessageSquare size={16} />
-                                    </button>
-                                  </>
+                                  <div className="text-sm text-white capitalize">{lead.planId || ''}</div>
                                 )}
-                              </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {editingLead === lead.id ? (
+                                  <div className="relative">
+                                    <select
+                                      value={editLeadStatus}
+                                      onChange={(e) => setEditLeadStatus(e.target.value as 'new' | 'contacted' | 'converted' | 'closed')}
+                                      className="bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-1 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                      <option value="new">New</option>
+                                      <option value="contacted">Contacted</option>
+                                      <option value="converted">Converted</option>
+                                      <option value="closed">Closed</option>
+                                    </select>
+                                    <ChevronDown size={16} className="text-gray-400 absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+                                  </div>
+                                ) : (
+                                  <StatusBadge status={lead.status || 'new'} />
+                                )}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                                {lead.createdAt ? new Date(lead.createdAt.seconds * 1000).toLocaleDateString() : '-'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div className="flex justify-end space-x-2">
+                                  {editingLead === lead.id ? (
+                                    <>
+                                      <button
+                                        onClick={() => handleUpdateLeadStatus(lead.id, editLeadStatus)}
+                                        className="text-green-400 hover:text-green-300"
+                                      >
+                                        Save
+                                      </button>
+                                      <button
+                                        onClick={() => setEditingLead(null)}
+                                        className="text-red-400 hover:text-red-300"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <button
+                                        onClick={() => {
+                                          setEditingLead(lead.id);
+                                          setEditLeadStatus(lead.status);
+                                        }}
+                                        className="text-blue-400 hover:text-blue-300"
+                                        title="Edit Status"
+                                      >
+                                        <Edit size={16} />
+                                      </button>
+                                      <button
+                                        onClick={() => setViewingLead(lead)}
+                                        className="text-blue-400 hover:text-blue-300"
+                                        title="View Details"
+                                      >
+                                        <MessageSquare size={16} />
+                                      </button>
+                                      {/* Download JSON button */}
+                                      <button
+                                        onClick={() => downloadApplicationJson(lead.id, lead.email)}
+                                        className="text-blue-400 hover:text-blue-300"
+                                        title="Download Application JSON"
+                                        disabled={downloadingJson === lead.id}
+                                      >
+                                        {downloadingJson === lead.id ? (
+                                          <RefreshCw size={16} className="animate-spin" />
+                                        ) : (
+                                          <Download size={16} />
+                                        )}
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-4 text-center text-gray-400">
+                              {searchQuery || leadFilterPlan !== 'all' ? 'No applications found matching your filters' : 'No applications found'}
                             </td>
                           </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={6} className="px-6 py-4 text-center text-gray-400">
-                            {searchQuery ? 'No leads found matching your search' : 'No leads found'}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
@@ -917,8 +1039,9 @@ export default function AdminDashboard() {
                       {viewingLead.name || ''} {viewingLead.surname || ''}
                     </h3>
                     <p className="text-gray-400">{viewingLead.company || ''}</p>
-                    <div className="mt-2">
+                    <div className="mt-2 flex space-x-2">
                       <StatusBadge status={viewingLead.status || 'new'} />
+                      {viewingLead.pricingPlan === 'freemium' && <StatusBadge status="freemium" />}
                     </div>
                   </div>
                 </div>
@@ -939,7 +1062,11 @@ export default function AdminDashboard() {
                 <div className="border-t border-gray-800 pt-4 mt-4">
                   <h4 className="text-sm font-medium text-gray-400 mb-2">Interested Plan</h4>
                   <div className="bg-gray-800 rounded-md p-3">
-                    <span className="text-white capitalize">{viewingLead.planId || 'No plan selected'}</span>
+                    <span className="text-white capitalize">
+                      {viewingLead.pricingPlan === 'freemium' 
+                        ? 'Freemium Plan (28-day free access)' 
+                        : (viewingLead.planId || 'No plan selected')}
+                    </span>
                   </div>
                 </div>
                 
@@ -960,16 +1087,36 @@ export default function AdminDashboard() {
                 </div>
                 
                 <div className="border-t border-gray-800 pt-4 mt-4 flex justify-between">
-                  <button
-                    onClick={() => {
-                      setEditingLead(viewingLead.id);
-                      setEditLeadStatus(viewingLead.status);
-                      setViewingLead(null);
-                    }}
-                    className="bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-md text-sm"
-                  >
-                    Change Status
-                  </button>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => {
+                        setEditingLead(viewingLead.id);
+                        setEditLeadStatus(viewingLead.status);
+                        setViewingLead(null);
+                      }}
+                      className="bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-md text-sm"
+                    >
+                      Change Status
+                    </button>
+                    
+                    <button
+                      onClick={() => downloadApplicationJson(viewingLead.id, viewingLead.email)}
+                      className="bg-green-600 hover:bg-green-500 text-white py-2 px-4 rounded-md text-sm flex items-center"
+                      disabled={downloadingJson === viewingLead.id}
+                    >
+                      {downloadingJson === viewingLead.id ? (
+                        <>
+                          <RefreshCw size={16} className="mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Download size={16} className="mr-2" />
+                          Download JSON
+                        </>
+                      )}
+                    </button>
+                  </div>
                   
                   <button
                     onClick={() => setViewingLead(null)}

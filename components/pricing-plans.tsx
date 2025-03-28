@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, X, ChevronDown, Zap, Shield, Users, Download, Star } from 'lucide-react'
+import { Check, X, ChevronDown, Zap, Shield, Users, Download, Star, Gift, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 
@@ -20,6 +20,7 @@ interface Plan {
   cta: string;
   popular: boolean;
   color: string;
+  blurred?: boolean;
 }
 
 interface AuthContextType {
@@ -28,6 +29,9 @@ interface AuthContextType {
   } | null;
   logout: () => void;
 }
+
+// Predefined widths for feature bars to avoid Math.random() hydration issues
+const featureBarWidths = [85, 78, 92, 81, 88]; 
 
 const PricingPlans = () => {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
@@ -56,13 +60,14 @@ const PricingPlans = () => {
       ],
       cta: "Get Started",
       popular: false,
-      color: "blue-400"
+      color: "blue-400",
+      blurred: true
     },
     {
-      name: "Pro",
+      name: "Freemium",
       description: "For growing businesses",
-      monthlyPrice: 99,
-      yearlyPrice: 990,
+      monthlyPrice: 400,
+      yearlyPrice: 4000,
       features: [
         { name: "Up to 10 users", included: true },
         { name: "Advanced management tools", included: true },
@@ -73,7 +78,7 @@ const PricingPlans = () => {
         { name: "API access", included: true },
         { name: "Basic analytics", included: true },
       ],
-      cta: "Choose Pro",
+      cta: "Choose Freemium",
       popular: true,
       color: "blue-500"
     },
@@ -94,7 +99,8 @@ const PricingPlans = () => {
       ],
       cta: "Contact Us",
       popular: false,
-      color: "blue-600"
+      color: "blue-600",
+      blurred: true
     }
   ]
   
@@ -116,38 +122,56 @@ const PricingPlans = () => {
       }
     }
   }
+
+  // Client-side only star field component to avoid hydration issues
+  const StarField = () => {
+    // Only generate stars on the client side
+    if (!mounted) return null;
+    
+    // Use a deterministic approach for the star positions to avoid hydration issues
+    return (
+      <div className="absolute inset-0 overflow-hidden">
+        {Array.from({ length: 100 }).map((_, i) => {
+          // Derive positions from index for deterministic rendering
+          const topPosition = ((i * 7) % 100);
+          const leftPosition = ((i * 13) % 100);
+          const scale = 0.5 + ((i % 3) * 0.5);
+          const duration = 3 + (i % 5);
+          const delay = (i % 10) * 0.5;
+          
+          return (
+            <motion.div
+              key={i}
+              className="absolute h-0.5 w-0.5 rounded-full bg-blue-100"
+              style={{
+                top: `${topPosition}%`,
+                left: `${leftPosition}%`,
+                scale: scale,
+              }}
+              animate={{
+                opacity: [0, 0.7, 0],
+                scale: [0, scale * 2, 0],
+              }}
+              transition={{
+                repeat: Infinity,
+                duration: duration,
+                delay: delay,
+                ease: "easeInOut"
+              }}
+            />
+          );
+        })}
+      </div>
+    );
+  };
   
   return (
     <section id="pricing" className="py-24 bg-black relative overflow-hidden">
       {/* Background gradient effect */}
       <div className="absolute inset-0 bg-gradient-to-b from-gray-950 to-black opacity-80"></div>
       
-      {/* Star field background effect - similar to the main page */}
-      {mounted && (
-        <div className="absolute inset-0 overflow-hidden">
-          {[...Array(100)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute h-0.5 w-0.5 rounded-full bg-blue-100"
-              style={{
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-                scale: Math.random() * 1.5,
-              }}
-              animate={{
-                opacity: [0, 0.7, 0],
-                scale: [0, Math.random() * 2, 0],
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: Math.random() * 4 + 3,
-                delay: Math.random() * 5,
-                ease: "easeInOut"
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {/* Star field - only renders on client side */}
+      <StarField />
 
       <div className="container mx-auto px-6 relative z-10">
         <motion.div 
@@ -158,14 +182,14 @@ const PricingPlans = () => {
           transition={{ duration: 0.8 }}
         >
           <h2 className="text-4xl md:text-5xl font-light mb-6 tracking-wide">
-            Choose the Plan That <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600">Fits Your Needs</span>
+            Freemium <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600">Plan</span>
           </h2>
-          <p className="text-lg text-gray-400 max-w-3xl mx-auto mb-12">
-            Flexible plans designed to meet the needs of every business, from small companies to large telecommunications providers.
+          <p className="text-lg text-gray-400 max-w-3xl mx-auto mb-6">
+            Flexible freemium plan designed to meet the needs of every business, from small companies to large telecommunications providers.
           </p>
           
           <motion.div 
-            className="inline-flex items-center p-1.5 bg-gray-900/50 rounded-full mb-12 relative backdrop-blur-sm border border-gray-800/50"
+            className="inline-flex items-center p-1.5 bg-gray-900/50 rounded-full mb-6 relative backdrop-blur-sm border border-gray-800/50"
             whileHover={{ scale: 1.02, boxShadow: "0px 0px 20px rgba(59, 130, 246, 0.2)" }}
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
@@ -197,6 +221,20 @@ const PricingPlans = () => {
               Annual Billing <span className="text-xs bg-emerald-500/20 text-emerald-400 ml-1 px-1.5 py-0.5 rounded-full">-17%</span>
             </motion.button>
           </motion.div>
+
+          {/* Demo promotion banner */}
+          <motion.div 
+            className="bg-gradient-to-r from-blue-600/30 to-blue-400/30 p-4 rounded-xl backdrop-blur-sm border border-blue-500/30 max-w-xl mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+            whileHover={{ scale: 1.02, boxShadow: "0px 0px 20px rgba(59, 130, 246, 0.3)" }}
+          >
+            <div className="flex items-center justify-center space-x-3">
+              <Gift className="h-5 w-5 text-blue-300" />
+              <p className="text-blue-100 font-medium">Gain 28 days of freemium access. This is a demo.</p>
+            </div>
+          </motion.div>
         </motion.div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -204,13 +242,15 @@ const PricingPlans = () => {
             <motion.div 
               key={plan.name}
               className={`relative rounded-2xl overflow-hidden ${
-                plan.popular ? 'border-2 border-blue-500/50' : 'border border-gray-800/50'
-              } bg-gray-900/40 backdrop-blur-sm transition-all duration-300 z-10`}
+                plan.popular ? 'border-2 border-blue-500/50 z-20' : 'border border-gray-800/50'
+              } bg-gray-900/40 backdrop-blur-sm transition-all duration-300 ${
+                plan.blurred ? 'opacity-30 blur-lg select-none' : 'z-10'
+              }`}
               initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              whileInView={{ opacity: plan.blurred ? 0.4 : 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1, duration: 0.5 }}
-              whileHover={{ 
+              whileHover={plan.blurred ? {} : { 
                 y: -10,
                 boxShadow: plan.popular 
                   ? `0 10px 40px -5px rgba(59, 130, 246, 0.5)` 
@@ -228,7 +268,7 @@ const PricingPlans = () => {
                 >
                   <div className="flex items-center justify-center">
                     <Star className="w-3.5 h-3.5 mr-1.5 fill-current" />
-                    Most Popular
+                    Freemium Plan
                     <Star className="w-3.5 h-3.5 ml-1.5 fill-current" />
                   </div>
                 </motion.div>
@@ -282,42 +322,64 @@ const PricingPlans = () => {
                   transition={{ delay: 0.2 }}
                 >
                   <AnimatePresence mode="wait">
-                    <motion.div 
-                      key={billingPeriod}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.3 }}
-                      className="flex flex-col items-center"
-                    >
+                    {!plan.blurred && (
                       <motion.div 
-                        className="text-4xl font-light flex items-baseline"
-                        animate={plan.popular ? {
-                          textShadow: [
-                            "0px 0px 0px rgba(255, 255, 255, 0)",
-                            "0px 0px 10px rgba(59, 130, 246, 0.5)",
-                            "0px 0px 0px rgba(255, 255, 255, 0)"
-                          ]
-                        } : {}}
-                        transition={{ repeat: Infinity, duration: 2 }}
+                        key={billingPeriod}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.3 }}
+                        className="flex flex-col items-center"
                       >
-                        <span className="text-2xl mr-0.5">$</span>
-                        <span className="text-white">{billingPeriod === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice}</span>
-                        <span className="text-gray-500 text-lg ml-1">
-                          {billingPeriod === 'monthly' ? '/ month' : '/ year'}
-                        </span>
+                        {/* Blurred price section for the middle plan only */}
+                        {plan.popular ? (
+                          <motion.div
+                            className="relative h-20 w-40 flex items-center justify-center"
+                            whileHover={{ scale: 1.05 }}
+                          >
+                            <div className="absolute inset-0 bg-blue-500/10 backdrop-blur-md rounded-lg border border-blue-500/30 filter blur-sm"></div>
+                            <div className="relative z-10 flex flex-col items-center">
+                              <div className="flex items-center justify-center mb-1">
+                                <Lock className="w-5 h-5 text-blue-400 mr-2" />
+                                <span className="text-white font-medium"></span>
+                              </div>
+                              <span className="text-xs text-blue-300"></span>
+                            </div>
+                          </motion.div>
+                        ) : (
+                          <motion.div 
+                            className="text-4xl font-light flex items-baseline"
+                            animate={plan.popular ? {
+                              textShadow: [
+                                "0px 0px 0px rgba(255, 255, 255, 0)",
+                                "0px 0px 10px rgba(59, 130, 246, 0.5)",
+                                "0px 0px 0px rgba(255, 255, 255, 0)"
+                              ]
+                            } : {}}
+                            transition={{ repeat: Infinity, duration: 2 }}
+                          >
+                            <span className="text-2xl mr-0.5">$</span>
+                            <span className="text-white">{billingPeriod === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice}</span>
+                            <span className="text-gray-500 text-lg ml-1">
+                              {billingPeriod === 'monthly' ? '/ month' : '/ year'}
+                            </span>
+                          </motion.div>
+                        )}
+
+                        {billingPeriod === 'yearly' && !plan.popular && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-xs text-emerald-400 mt-2"
+                          >
+                            Save ${plan.monthlyPrice * 12 - plan.yearlyPrice} per year
+                          </motion.div>
+                        )}
                       </motion.div>
-                      
-                      {billingPeriod === 'yearly' && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="text-xs text-emerald-400 mt-2"
-                        >
-                          Save ${plan.monthlyPrice * 12 - plan.yearlyPrice} per year
-                        </motion.div>
-                      )}
-                    </motion.div>
+                    )}
+                    {plan.blurred && (
+                      <motion.div className="h-20 w-32 bg-gray-800/30 rounded-lg mx-auto"></motion.div>
+                    )}
                   </AnimatePresence>
                 </motion.div>
                 
@@ -332,7 +394,7 @@ const PricingPlans = () => {
                 >
                   <motion.div 
                     className="text-center"
-                    whileHover={{ y: -5, scale: 1.1 }}
+                    whileHover={plan.blurred ? {} : { y: -5, scale: 1.1 }}
                   >
                     <motion.div 
                       className={`w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-2 ${plan.popular ? 'border border-blue-500/30' : ''}`}
@@ -345,12 +407,12 @@ const PricingPlans = () => {
                     >
                       <Users className="w-5 h-5 text-blue-400" />
                     </motion.div>
-                    <span className="text-xs text-gray-400">{plan.name === "Basic" ? "2" : plan.name === "Pro" ? "10" : "∞"}</span>
+                    <span className="text-xs text-gray-400">{plan.name === "Basic" ? "2" : plan.name === "Freemium" ? "10" : "∞"}</span>
                   </motion.div>
                   
                   <motion.div 
                     className="text-center"
-                    whileHover={{ y: -5, scale: 1.1 }}
+                    whileHover={plan.blurred ? {} : { y: -5, scale: 1.1 }}
                   >
                     <motion.div 
                       className={`w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-2 ${plan.popular ? 'border border-blue-500/30' : ''}`}
@@ -363,12 +425,12 @@ const PricingPlans = () => {
                     >
                       <Zap className="w-5 h-5 text-blue-400" />
                     </motion.div>
-                    <span className="text-xs text-gray-400">{plan.name === "Basic" ? "Basic" : plan.name === "Pro" ? "Fast" : "Ultra"}</span>
+                    <span className="text-xs text-gray-400">{plan.name === "Basic" ? "Basic" : plan.name === "Freemium" ? "Fast" : "Ultra"}</span>
                   </motion.div>
                   
                   <motion.div 
                     className="text-center"
-                    whileHover={{ y: -5, scale: 1.1 }}
+                    whileHover={plan.blurred ? {} : { y: -5, scale: 1.1 }}
                   >
                     <motion.div 
                       className={`w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-2 ${plan.popular ? 'border border-blue-500/30' : ''}`}
@@ -381,13 +443,13 @@ const PricingPlans = () => {
                     >
                       <Shield className="w-5 h-5 text-blue-400" />
                     </motion.div>
-                    <span className="text-xs text-gray-400">{plan.name === "Basic" ? "Email" : plan.name === "Pro" ? "Phone" : "24/7"}</span>
+                    <span className="text-xs text-gray-400">{plan.name === "Basic" ? "Email" : plan.name === "Freemium" ? "Phone" : "24/7"}</span>
                   </motion.div>
                 </motion.div>
 
                 {/* Feature list */}
                 <div className="space-y-3 mb-8">
-                  {plan.features.map((feature, i) => (
+                  {!plan.blurred && plan.features.map((feature, i) => (
                     <motion.div 
                       key={i} 
                       className="flex items-start group"
@@ -414,51 +476,67 @@ const PricingPlans = () => {
                       </span>
                     </motion.div>
                   ))}
+                  {plan.blurred && (
+                    <div className="space-y-3">
+                      {featureBarWidths.map((width, i) => (
+                        <motion.div 
+                          key={i}
+                          className="h-5 bg-gray-800/30 rounded-md" 
+                          style={{width: `${width}%`}}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
                 {/* CTA Button */}
-                <Link href={user ? "/dashboard" : "/apply"}>
-                  <motion.div 
-                    className={`w-full py-3.5 px-6 rounded-lg font-medium transition-all duration-300 flex items-center justify-center ${
-                      plan.popular 
-                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white' 
-                        : 'bg-gray-800 hover:bg-gray-700 text-white border border-gray-700/50'
-                    }`}
-                    whileHover={{ 
-                      scale: 1.03,
-                      boxShadow: plan.popular ? "0px 5px 15px rgba(59, 130, 246, 0.4)" : "none"
-                    }}
-                    whileTap={{ scale: 0.97 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                  >
-                    <span>{plan.cta}</span>
-                    <motion.div
-                      animate={{ 
-                        y: [0, 3, 0], 
-                        opacity: [0.7, 1, 0.7] 
+                {!plan.blurred && (
+                  <Link href={user ? "/dashboard" : "/apply"}>
+                    <motion.div 
+                      className={`w-full py-3.5 px-6 rounded-lg font-medium transition-all duration-300 flex items-center justify-center ${
+                        plan.popular 
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white' 
+                          : 'bg-gray-800 hover:bg-gray-700 text-white border border-gray-700/50'
+                      }`}
+                      whileHover={{ 
+                        scale: 1.03,
+                        boxShadow: plan.popular ? "0px 5px 15px rgba(59, 130, 246, 0.4)" : "none"
                       }}
-                      transition={{ 
-                        repeat: Infinity, 
-                        duration: 1.5, 
-                        ease: "easeInOut" 
-                      }}
-                      className="ml-2"
+                      whileTap={{ scale: 0.97 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
                     >
-                      <Download className="h-4 w-4 text-white/70" />
+                      <span>Choose Freemium</span>
+                      <motion.div
+                        animate={{ 
+                          y: [0, 3, 0], 
+                          opacity: [0.7, 1, 0.7] 
+                        }}
+                        transition={{ 
+                          repeat: Infinity, 
+                          duration: 1.5, 
+                          ease: "easeInOut" 
+                        }}
+                        className="ml-2"
+                      >
+                        <Download className="h-4 w-4 text-white/70" />
+                      </motion.div>
                     </motion.div>
-                  </motion.div>
-                </Link>
+                  </Link>
+                )}
                 
-                {/* Free trial badge */}
+                {/* Freemium plan badges */}
                 {plan.popular && (
                   <motion.div 
-                    className="mt-4 text-xs flex items-center justify-center"
+                    className="mt-4 flex flex-col items-center space-y-2"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.5 }}
                   >
-                    <span className="bg-gradient-to-r from-emerald-500/10 to-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20">
-                      14-Day Free Trial
+                    <span className="bg-gradient-to-r from-emerald-500/10 to-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20 text-xs">
+                      28-Day Freemium Access
+                    </span>
+                    <span className="bg-gradient-to-r from-blue-500/10 to-blue-500/20 text-blue-400 px-3 py-1 rounded-full border border-blue-500/20 text-xs">
+                      Demo Version
                     </span>
                   </motion.div>
                 )}
@@ -466,35 +544,6 @@ const PricingPlans = () => {
             </motion.div>
           ))}
         </div>
-        
-        {/* Custom plan CTA */}
-        <motion.div 
-          className="mt-16 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.5, duration: 0.8 }}
-        >
-          <div className="inline-block bg-gray-900/30 backdrop-blur-sm px-8 py-5 rounded-xl border border-gray-800/50">
-            <div className="text-lg text-gray-300 flex flex-col md:flex-row items-center gap-4">
-              <span>Need a custom plan for specific requirements?</span>
-              <Link href="/contact">
-                <motion.div 
-                  className="text-blue-400 hover:text-blue-300 inline-flex items-center gap-2 bg-blue-500/10 px-4 py-2 rounded-lg"
-                  whileHover={{ 
-                    scale: 1.05, 
-                    x: 5,
-                    boxShadow: "0px 0px 15px rgba(59, 130, 246, 0.3)"
-                  }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                >
-                  <span>Contact us</span>
-                  <ChevronDown className="h-4 w-4 rotate-270 transform" />
-                </motion.div>
-              </Link>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </section>
   )

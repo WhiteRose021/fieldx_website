@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { PageTransitionWrapper } from '@/components/page-transition';
 import Header from '@/components/header';
-import { ChevronLeft, Check, ArrowRight, Mail, User, Building, Phone, MessageSquare } from 'lucide-react';
+import { ChevronLeft, Check, ArrowRight, Mail, User, Building, Phone, MessageSquare, Package } from 'lucide-react';
 
 // Type definitions
 interface FormData {
@@ -16,6 +16,7 @@ interface FormData {
   company: string;
   phone: string;
   description: string;
+  pricingPlan: string;
 }
 
 interface SubmitResponse {
@@ -25,14 +26,21 @@ interface SubmitResponse {
 
 export default function ContactFormPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Set Freemium as default plan and check if a plan was passed in URL
+  const defaultPlan = searchParams.get('plan') || 'freemium';
+  
   const [formData, setFormData] = useState<FormData>({
     email: '',
     name: '',
     surname: '',
     company: '',
     phone: '',
-    description: ''
+    description: '',
+    pricingPlan: defaultPlan
   });
+  
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -59,6 +67,7 @@ export default function ContactFormPage() {
     if (!formData.surname) newErrors.surname = 'Surname is required';
     if (!formData.company) newErrors.company = 'Company name is required';
     if (!formData.phone) newErrors.phone = 'Phone number is required';
+    if (!formData.pricingPlan) newErrors.pricingPlan = 'Pricing plan is required';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -74,7 +83,6 @@ export default function ContactFormPage() {
     
     try {
       // API call to submit form
-      // Replace with your actual API endpoint
       const response = await fetch('/api/submit-inquiry', {
         method: 'POST',
         headers: {
@@ -128,9 +136,9 @@ export default function ContactFormPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6 }}
                 >
-                  <h1 className="text-4xl font-light mb-4">Contact Us</h1>
+                  <h1 className="text-4xl font-light mb-4">Apply for FieldX</h1>
                   <p className="text-gray-400 max-w-lg mx-auto">
-                    Interested in FieldX? Fill out the form below and one of our representatives will get in touch with you shortly.
+                    Fill out the form below to apply for FieldX's Freemium Plan. Our team will get in touch with you shortly.
                   </p>
                 </motion.div>
                 
@@ -140,6 +148,14 @@ export default function ContactFormPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
                 >
+                  {/* Freemium Plan Banner */}
+                  <div className="mb-8 bg-blue-600/20 border border-blue-500/30 rounded-lg p-4 text-center">
+                    <h3 className="text-xl font-light mb-2 text-blue-300">Freemium Plan</h3>
+                    <p className="text-gray-300 text-sm">
+                      You are applying for our 28-day Freemium access. Get started with FieldX at no cost!
+                    </p>
+                  </div>
+                  
                   <form onSubmit={handleSubmit}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                       {/* Name */}
@@ -253,10 +269,18 @@ export default function ContactFormPage() {
                       {errors.phone && <p className="mt-1 text-sm text-red-400">{errors.phone}</p>}
                     </div>
                     
+                    {/* Hidden Pricing Plan Field - Always set to Freemium */}
+                    <input 
+                      type="hidden" 
+                      name="pricingPlan" 
+                      id="pricingPlan" 
+                      value="freemium" 
+                    />
+                    
                     {/* Description */}
                     <div className="mb-6">
                       <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-2">
-                        Message (Optional)
+                        Additional Information (Optional)
                       </label>
                       <div className="relative">
                         <div className="absolute top-3 left-3 flex items-start pointer-events-none">
@@ -269,7 +293,7 @@ export default function ContactFormPage() {
                           onChange={handleChange}
                           rows={4}
                           className="bg-gray-800 border border-gray-700 rounded-md pl-10 py-3 pr-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Tell us about your needs..."
+                          placeholder="Tell us about your specific needs or questions..."
                         ></textarea>
                       </div>
                     </div>
@@ -289,11 +313,11 @@ export default function ContactFormPage() {
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            Submitting...
+                            Processing...
                           </span>
                         ) : (
                           <>
-                            Submit
+                            Apply for Freemium Access
                             <ArrowRight size={18} className="ml-2" />
                           </>
                         )}
@@ -314,9 +338,9 @@ export default function ContactFormPage() {
                     <Check size={32} className="text-green-400" />
                   </div>
                 </div>
-                <h2 className="text-2xl font-light mb-4">Thank You!</h2>
+                <h2 className="text-2xl font-light mb-4">Application Submitted!</h2>
                 <p className="text-gray-400 mb-6">
-                  Your inquiry has been submitted successfully. One of our representatives will contact you shortly.
+                  Thank you for applying for the FieldX Freemium Plan. Our team will review your application and contact you shortly with your access details.
                 </p>
                 <p className="text-gray-400 mb-6">
                   You will be redirected to the homepage in a few seconds.
