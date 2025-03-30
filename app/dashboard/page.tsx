@@ -10,7 +10,7 @@ import {
   ChevronDown, User, BarChart2, Map, Calendar, Settings, 
   LogOut, Menu, X, PlusCircle, MessageSquare, 
   Clock, CheckCircle, XCircle, Send, RefreshCw, Filter,
-  Download, Lock
+  Download, Lock, Search, Bell, Info, Keyboard
 } from 'lucide-react';
 import { 
   collection, addDoc, query, where, orderBy, onSnapshot, 
@@ -82,6 +82,23 @@ interface DataExtractionButtonProps {
 
 interface PrivacyPanelProps {
   user: UserType | null;
+}
+
+interface AnalyticsOverviewProps {
+  tickets: Ticket[];
+}
+
+interface TicketSearchProps {
+  onSearch: (filters: any) => void;
+}
+
+interface UserProfileDropdownProps {
+  user: UserType | null;
+  logout: () => void;
+}
+
+interface TicketTimelineProps {
+  ticket: Ticket | null;
 }
 
 // Sidebar navigation component
@@ -390,6 +407,635 @@ const PrivacyPanel = ({ user }: PrivacyPanelProps) => {
         <div className="mt-6 text-xs text-gray-500 text-center">
           In accordance with GDPR and our <Link href="/privacy-policy" className="text-blue-400 hover:underline">Privacy Policy</Link>,
           you have the right to access, modify, and delete your personal data.
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// NEW: Analytics Overview Component
+const AnalyticsOverview = ({ tickets }: AnalyticsOverviewProps) => {
+  // Calculate statistics
+  const openTickets = tickets.filter(t => t.status === 'open').length;
+  const closedTickets = tickets.filter(t => t.status === 'closed').length;
+  const totalTickets = tickets.length;
+  const responseRate = totalTickets > 0 ? 
+    (tickets.filter(t => t.messages.length > 1).length / totalTickets * 100).toFixed(0) : 0;
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-gray-400 text-sm">Total Tickets</p>
+            <h3 className="text-2xl font-semibold mt-1">{totalTickets}</h3>
+          </div>
+          <div className="bg-blue-500/20 p-2 rounded-md">
+            <MessageSquare size={20} className="text-blue-400" />
+          </div>
+        </div>
+      </div>
+      
+      <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-gray-400 text-sm">Open Tickets</p>
+            <h3 className="text-2xl font-semibold mt-1">{openTickets}</h3>
+          </div>
+          <div className="bg-green-500/20 p-2 rounded-md">
+            <CheckCircle size={20} className="text-green-400" />
+          </div>
+        </div>
+      </div>
+      
+      <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-gray-400 text-sm">Closed Tickets</p>
+            <h3 className="text-2xl font-semibold mt-1">{closedTickets}</h3>
+          </div>
+          <div className="bg-gray-500/20 p-2 rounded-md">
+            <XCircle size={20} className="text-gray-400" />
+          </div>
+        </div>
+      </div>
+      
+      <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-gray-400 text-sm">Response Rate</p>
+            <h3 className="text-2xl font-semibold mt-1">{responseRate}%</h3>
+          </div>
+          <div className="bg-yellow-500/20 p-2 rounded-md">
+            <RefreshCw size={20} className="text-yellow-400" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// NEW: Notification Center Component
+const NotificationCenter = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([
+    { id: 1, text: "Your ticket #123 has been updated", read: false, time: "10 min ago" },
+    { id: 2, text: "Support agent replied to your ticket", read: false, time: "1 hour ago" },
+    { id: 3, text: "Ticket #120 has been resolved", read: true, time: "1 day ago" }
+  ]);
+  
+  const unreadCount = notifications.filter(n => !n.read).length;
+  
+  const markAllAsRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  };
+  
+  return (
+    <div className="relative">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative p-2 text-gray-400 hover:text-white focus:outline-none"
+      >
+        <Bell size={20} />
+        {unreadCount > 0 && (
+          <span className="absolute top-0 right-0 h-4 w-4 bg-red-500 rounded-full text-xs flex items-center justify-center">
+            {unreadCount}
+          </span>
+        )}
+      </button>
+      
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-80 bg-gray-900 border border-gray-800 rounded-lg shadow-lg z-10">
+          <div className="p-3 border-b border-gray-800 flex justify-between items-center">
+            <h3 className="font-medium">Notifications</h3>
+            {unreadCount > 0 && (
+              <button 
+                onClick={markAllAsRead}
+                className="text-xs text-blue-400 hover:text-blue-300"
+              >
+                Mark all as read
+              </button>
+            )}
+          </div>
+          
+          <div className="max-h-96 overflow-y-auto">
+            {notifications.length > 0 ? (
+              notifications.map(notification => (
+                <div 
+                  key={notification.id}
+                  className={`p-3 border-b border-gray-800 hover:bg-gray-800 ${
+                    !notification.read ? 'bg-gray-800/50' : ''
+                  }`}
+                >
+                  <div className="flex items-start">
+                    <div className={`mt-1 h-2 w-2 rounded-full flex-shrink-0 ${
+                      !notification.read ? 'bg-blue-400' : 'bg-gray-600'
+                    }`}></div>
+                    <div className="ml-3 flex-1">
+                      <p className="text-sm text-gray-300">{notification.text}</p>
+                      <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-center text-gray-500">
+                <p>No notifications</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="p-2 border-t border-gray-800 text-center">
+            <Link href="/notifications" className="text-xs text-blue-400 hover:text-blue-300">
+              View all notifications
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// NEW: Search Component with Advanced Filters
+const TicketSearch = ({ onSearch }: TicketSearchProps) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    status: 'all',
+    dateRange: 'all',
+    hasAttachments: false,
+  });
+  
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearch({ query: searchQuery, ...filters });
+  };
+  
+  return (
+    <div className="mb-6">
+      <form onSubmit={handleSearchSubmit} className="bg-gray-900 rounded-lg border border-gray-800 p-4">
+        <div className="flex items-center">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={18} className="text-gray-400" />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-gray-800 border border-gray-700 pl-10 pr-4 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Search tickets..."
+            />
+          </div>
+          
+          <button
+            type="button"
+            onClick={() => setShowFilters(!showFilters)}
+            className="ml-3 flex items-center text-gray-400 hover:text-white px-3 py-2 rounded-md hover:bg-gray-800"
+          >
+            <Filter size={18} className="mr-1" />
+            <span className="text-sm">Filters</span>
+            <ChevronDown
+              size={16}
+              className={`ml-1 transform transition-transform duration-200 ${
+                showFilters ? 'rotate-180' : ''
+              }`}
+            />
+          </button>
+          
+          <button
+            type="submit"
+            className="ml-3 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md transition-colors"
+          >
+            Search
+          </button>
+        </div>
+        
+        {showFilters && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="mt-4 pt-4 border-t border-gray-800 grid grid-cols-1 md:grid-cols-3 gap-4"
+          >
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">Status</label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                className="bg-gray-800 border border-gray-700 rounded-md py-2 px-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Statuses</option>
+                <option value="open">Open</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">Date Range</label>
+              <select
+                value={filters.dateRange}
+                onChange={(e) => setFilters({ ...filters, dateRange: e.target.value })}
+                className="bg-gray-800 border border-gray-700 rounded-md py-2 px-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center">
+              <label className="inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.hasAttachments}
+                  onChange={(e) => setFilters({ ...filters, hasAttachments: e.target.checked })}
+                  className="form-checkbox h-5 w-5 bg-gray-800 border-gray-700 rounded text-blue-600 focus:ring-blue-500 focus:outline-none"
+                />
+                <span className="ml-2 text-sm font-medium text-gray-400">Has Attachments</span>
+              </label>
+            </div>
+          </motion.div>
+        )}
+      </form>
+    </div>
+  );
+};
+
+// NEW: User Profile Dropdown
+const UserProfileDropdown = ({ user, logout }: UserProfileDropdownProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <div className="relative">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center space-x-2 text-sm focus:outline-none"
+      >
+        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+          <span className="font-medium">{user?.email?.charAt(0).toUpperCase() || 'U'}</span>
+        </div>
+        <span className="hidden md:inline-block">{user?.email || 'User'}</span>
+        <ChevronDown size={16} className={`transform transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-56 bg-gray-900 border border-gray-800 rounded-lg shadow-lg z-10">
+          <div className="p-3 border-b border-gray-800">
+            <p className="text-sm font-medium text-gray-300">{user?.email}</p>
+            <p className="text-xs text-gray-500 mt-1">Customer Account</p>
+          </div>
+          
+          <div className="py-1">
+            <button
+              className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+              onClick={() => alert('Profile settings would open here')}
+            >
+              <User size={16} className="mr-3 text-gray-400" />
+              Profile Settings
+            </button>
+            
+            <button
+              className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+              onClick={() => alert('Preferences would open here')}
+            >
+              <Settings size={16} className="mr-3 text-gray-400" />
+              Preferences
+            </button>
+          </div>
+          
+          <div className="py-1 border-t border-gray-800">
+            <button
+              onClick={logout}
+              className="flex items-center w-full px-4 py-2 text-sm text-red-400 hover:bg-gray-800"
+            >
+              <LogOut size={16} className="mr-3" />
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// NEW: FAQ / Knowledge Base Component
+const KnowledgeBase = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedItem, setExpandedItem] = useState<number | null>(null);
+  
+  const faqItems = [
+    {
+      id: 1,
+      question: "How do I reset my password?",
+      answer: "You can reset your password by clicking on the 'Forgot Password' link on the login page. You will receive an email with instructions to reset your password."
+    },
+    {
+      id: 2,
+      question: "How do I create a new ticket?",
+      answer: "Click on the 'New Ticket' button at the top of the dashboard, fill in the subject and description of your issue, then click 'Create Ticket'."
+    },
+    {
+      id: 3,
+      question: "How long does it take to get a response?",
+      answer: "Our support team typically responds within 24 hours on business days. For urgent issues, please mark your ticket as 'High Priority'."
+    },
+    {
+      id: 4,
+      question: "Can I attach files to my tickets?",
+      answer: "Yes, you can attach files when creating a ticket or when replying to an existing ticket. Click the attachment icon in the message box to upload files."
+    }
+  ];
+  
+  const filteredFaqs = searchQuery.trim() === '' 
+    ? faqItems 
+    : faqItems.filter(item => 
+        item.question.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        item.answer.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+  
+  return (
+    <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden mb-6">
+      <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+        <h3 className="text-lg font-light">Frequently Asked Questions</h3>
+      </div>
+      
+      <div className="p-4">
+        <div className="relative mb-4">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search size={18} className="text-gray-400" />
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-gray-800 border border-gray-700 pl-10 pr-4 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Search FAQ..."
+          />
+        </div>
+        
+        <div className="space-y-2">
+          {filteredFaqs.length > 0 ? (
+            filteredFaqs.map(item => (
+              <div key={item.id} className="border border-gray-800 rounded-md overflow-hidden">
+                <button
+                  onClick={() => setExpandedItem(expandedItem === item.id ? null : item.id)}
+                  className="w-full px-4 py-3 text-left flex justify-between items-center hover:bg-gray-800"
+                >
+                  <span className="font-medium text-gray-300">{item.question}</span>
+                  <ChevronDown 
+                    size={18} 
+                    className={`text-gray-400 transform transition-transform ${
+                      expandedItem === item.id ? 'rotate-180' : ''
+                    }`} 
+                  />
+                </button>
+                
+                {expandedItem === item.id && (
+                  <div className="px-4 py-3 border-t border-gray-800 bg-gray-800/30">
+                    <p className="text-gray-400">{item.answer}</p>
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              <p>No FAQ items match your search</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// NEW: Ticket Timeline Component
+const TicketTimeline = ({ ticket }: TicketTimelineProps) => {
+  if (!ticket) return null;
+  
+  // Generate timeline events from ticket data
+  const events = [
+    {
+      id: 1,
+      type: 'created',
+      time: ticket.createdAt,
+      title: 'Ticket Created',
+      description: `Ticket #${ticket.id.substring(0, 8)} was created`
+    },
+    ...ticket.messages.map((msg, index) => ({
+      id: index + 2,
+      type: 'message',
+      time: msg.timestamp,
+      title: `${msg.isAdmin ? 'Support replied' : 'You replied'}`,
+      description: msg.content.substring(0, 60) + (msg.content.length > 60 ? '...' : '')
+    }))
+  ];
+  
+  if (ticket.status === 'closed') {
+    events.push({
+      id: events.length + 1,
+      type: 'closed',
+      time: ticket.lastUpdate,
+      title: 'Ticket Closed',
+      description: 'The ticket was marked as resolved'
+    });
+  }
+  
+  // Sort events by time
+  events.sort((a, b) => {
+    const timeA = a.time?.seconds || 0;
+    const timeB = b.time?.seconds || 0;
+    return timeB - timeA; // Newest first
+  });
+  
+  return (
+    <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+      <div className="p-4 border-b border-gray-800">
+        <h3 className="text-lg font-light">Ticket Timeline</h3>
+      </div>
+      
+      <div className="p-4">
+        <div className="relative">
+          {events.map((event, index) => (
+            <div key={event.id} className="mb-4 relative pl-6">
+              {/* Timeline line */}
+              {index < events.length - 1 && (
+                <div className="absolute top-3 left-2.5 bottom-0 w-0.5 bg-gray-800"></div>
+              )}
+              
+              {/* Timeline dot */}
+              <div className={`absolute top-1.5 left-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                event.type === 'created' ? 'bg-green-500/20' : 
+                event.type === 'closed' ? 'bg-red-500/20' : 'bg-blue-500/20'
+              }`}>
+                <div className={`w-2.5 h-2.5 rounded-full ${
+                  event.type === 'created' ? 'bg-green-500' : 
+                  event.type === 'closed' ? 'bg-red-500' : 'bg-blue-500'
+                }`}></div>
+              </div>
+              
+              {/* Event content */}
+              <div className="bg-gray-800/30 rounded-md p-3 border border-gray-800">
+                <div className="flex justify-between items-center mb-1">
+                  <h4 className="font-medium text-sm">{event.title}</h4>
+                  <span className="text-xs text-gray-500">
+                    {event.time && new Date(event.time.seconds * 1000).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-400">{event.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// NEW: Quick Actions Panel
+const QuickActions = () => {
+  const actions = [
+    { icon: PlusCircle, label: 'New Ticket', onClick: () => alert('Create new ticket') },
+    { icon: RefreshCw, label: 'Check Status', onClick: () => alert('Check ticket status') },
+    { icon: Download, label: 'Export Data', onClick: () => alert('Export data') },
+    { icon: MessageSquare, label: 'Contact Us', onClick: () => alert('Contact support') }
+  ];
+  
+  return (
+    <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden mb-6">
+      <div className="p-4 border-b border-gray-800">
+        <h3 className="text-lg font-light">Quick Actions</h3>
+      </div>
+      
+      <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+        {actions.map((action, index) => (
+          <motion.button
+            key={index}
+            onClick={action.onClick}
+            className="flex flex-col items-center justify-center bg-gray-800/50 hover:bg-gray-800 rounded-lg p-4 border border-gray-800"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <action.icon size={24} className="text-blue-400 mb-2" />
+            <span className="text-sm text-gray-300">{action.label}</span>
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// NEW: Keyboard Shortcuts Help
+const KeyboardShortcuts = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const shortcuts = [
+    { key: 'N', description: 'Create new ticket' },
+    { key: 'J', description: 'Next ticket' },
+    { key: 'K', description: 'Previous ticket' },
+    { key: '/', description: 'Search' },
+    { key: 'R', description: 'Reply to selected ticket' },
+    { key: 'Esc', description: 'Close modal or cancel' }
+  ];
+  
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-4 right-4 bg-gray-800 hover:bg-gray-700 text-gray-300 p-2 rounded-md shadow-lg"
+        title="Keyboard shortcuts"
+      >
+        <Keyboard size={20} />
+      </button>
+      
+      {isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            className="bg-gray-900 border border-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4"
+          >
+            <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+              <h3 className="font-medium">Keyboard Shortcuts</h3>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-4">
+              <div className="grid grid-cols-2 gap-2">
+                {shortcuts.map((shortcut, index) => (
+                  <div key={index} className="flex items-center">
+                    <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-300 rounded mr-2">
+                      {shortcut.key}
+                    </kbd>
+                    <span className="text-sm text-gray-300">{shortcut.description}</span>
+                  </div>
+                ))}
+              </div>
+              
+              <p className="mt-4 text-sm text-gray-400">
+                Press <kbd className="px-1.5 py-0.5 text-xs font-semibold text-gray-800 bg-gray-300 rounded">?</kbd> anywhere to show this help dialog
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </>
+  );
+};
+
+// NEW: Custom Status Badge Component
+const StatusBadge = ({ status, customText }: {status: string, customText?: string}) => {
+  let bgColor, textColor, icon;
+  
+  switch (status) {
+    case 'open':
+      bgColor = 'bg-green-500/20';
+      textColor = 'text-green-400';
+      icon = <CheckCircle size={12} className="mr-1" />;
+      break;
+    case 'pending':
+      bgColor = 'bg-yellow-500/20';
+      textColor = 'text-yellow-400';
+      icon = <Clock size={12} className="mr-1" />;
+      break;
+    case 'closed':
+      bgColor = 'bg-gray-500/20';
+      textColor = 'text-gray-400';
+      icon = <XCircle size={12} className="mr-1" />;
+      break;
+    default:
+      bgColor = 'bg-blue-500/20';
+      textColor = 'text-blue-400';
+      icon = <Info size={12} className="mr-1" />;
+  }
+  
+  return (
+    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${bgColor} ${textColor}`}>
+      {icon}
+      {customText || status}
+    </span>
+  );
+};
+
+// NEW: Coming Soon banner
+const ComingSoonBanner = () => {
+  return (
+    <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white p-4 rounded-lg mb-6 shadow-md">
+      <div className="flex items-center">
+        <div className="mr-4">
+          <span className="bg-white text-purple-700 py-1 px-3 rounded-full font-bold text-sm">NEW</span>
+        </div>
+        <div className="flex-1">
+          <h3 className="font-bold text-lg">Enhanced Dashboard Experience Coming Soon!</h3>
+          <p className="mt-1">We're working on exciting new features to make your experience even better. Stay tuned for updates!</p>
         </div>
       </div>
     </div>
@@ -856,6 +1502,12 @@ export default function Dashboard() {
     }
   };
 
+  // Handle search
+  const handleSearch = (filters: any) => {
+    console.log('Search with filters:', filters);
+    // Implementation would filter tickets based on search params
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
@@ -877,14 +1529,8 @@ export default function Dashboard() {
           </button>
           
           <div className="ml-auto flex items-center space-x-4">
-            <div className="relative">
-              <button className="flex items-center space-x-2 text-sm">
-                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                  <span className="font-medium">{user?.email?.charAt(0).toUpperCase() || 'U'}</span>
-                </div>
-                <span className="hidden md:inline-block">{user?.email || 'User'}</span>
-              </button>
-            </div>
+            <NotificationCenter />
+            <UserProfileDropdown user={user} logout={logout} />
           </div>
         </header>
         
@@ -910,6 +1556,20 @@ export default function Dashboard() {
             </motion.button>
           </div>
           
+          {/* Coming Soon Banner for non-admin users */}
+          {user?.email !== 'garvanitis@applink.gr' && (
+            <ComingSoonBanner />
+          )}
+          
+          {/* Analytics Dashboard */}
+          <AnalyticsOverview tickets={tickets} />
+          
+          {/* Quick Actions */}
+          <QuickActions />
+          
+          {/* Advanced Search */}
+          <TicketSearch onSearch={handleSearch} />
+          
           {showNewTicketForm ? (
             <div className="mb-8">
               <NewTicketForm
@@ -927,6 +1587,9 @@ export default function Dashboard() {
                 </div>
               )}
               
+              {/* Knowledge Base */}
+              <KnowledgeBase />
+              
               {/* Privacy Panel */}
               <div className="mb-6">
                 <PrivacyPanel user={user} />
@@ -935,12 +1598,17 @@ export default function Dashboard() {
           )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <TicketList
-              tickets={tickets}
-              selectedTicket={selectedTicket}
-              selectTicket={setSelectedTicket}
-              isLoading={isLoading}
-            />
+            <div className="space-y-6">
+              <TicketList
+                tickets={tickets}
+                selectedTicket={selectedTicket}
+                selectTicket={setSelectedTicket}
+                isLoading={isLoading}
+              />
+              
+              {/* Timeline added here */}
+              {selectedTicket && <TicketTimeline ticket={selectedTicket} />}
+            </div>
             
             <TicketDetail
               ticket={selectedTicket}
@@ -950,6 +1618,9 @@ export default function Dashboard() {
             />
           </div>
         </main>
+        
+        {/* Keyboard Shortcuts Help */}
+        <KeyboardShortcuts />
       </div>
     </PageTransitionWrapper>
   );
