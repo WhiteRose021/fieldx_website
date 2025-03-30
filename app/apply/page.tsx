@@ -29,8 +29,8 @@ function FormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Set Freemium as default plan and check if a plan was passed in URL
-  const defaultPlan = searchParams.get('plan') || 'freemium';
+  // Set default plan and check if a plan was passed in URL
+  const defaultPlan = searchParams.get('plan') || 'contact';
   
   const [formData, setFormData] = useState<FormData>({
     email: '',
@@ -121,9 +121,9 @@ function FormContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-4xl font-light mb-4">Apply for FieldX</h1>
+            <h1 className="text-4xl font-light mb-4">Contact Us for FieldX</h1>
             <p className="text-gray-400 max-w-lg mx-auto">
-              Fill out the form below to apply for FieldX's Freemium Plan. Our team will get in touch with you shortly.
+              Fill out the form below to inquire about FieldX's Pricing Plans. Our team will get in touch with you shortly.
             </p>
           </motion.div>
           
@@ -133,11 +133,11 @@ function FormContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            {/* Freemium Plan Banner */}
+            {/* Pricing Plans Banner */}
             <div className="mb-8 bg-blue-600/20 border border-blue-500/30 rounded-lg p-4 text-center">
-              <h3 className="text-xl font-light mb-2 text-blue-300">Freemium Plan</h3>
+              <h3 className="text-xl font-light mb-2 text-blue-300">Pricing Plans</h3>
               <p className="text-gray-300 text-sm">
-                You are applying for our 28-day Freemium access. Get started with FieldX at no cost!
+                Contact us for information about our pricing plans and services. We'll help you find the best solution for your needs.
               </p>
             </div>
             
@@ -254,12 +254,12 @@ function FormContent() {
                 {errors.phone && <p className="mt-1 text-sm text-red-400">{errors.phone}</p>}
               </div>
               
-              {/* Hidden Pricing Plan Field - Always set to Freemium */}
+              {/* Hidden Pricing Plan Field */}
               <input 
                 type="hidden" 
                 name="pricingPlan" 
                 id="pricingPlan" 
-                value="freemium" 
+                value="contact" 
               />
               
               {/* Description */}
@@ -302,7 +302,7 @@ function FormContent() {
                     </span>
                   ) : (
                     <>
-                      Apply for Freemium Access
+                      Please Contact Us
                       <ArrowRight size={18} className="ml-2" />
                     </>
                   )}
@@ -323,9 +323,9 @@ function FormContent() {
               <Check size={32} className="text-green-400" />
             </div>
           </div>
-          <h2 className="text-2xl font-light mb-4">Application Submitted!</h2>
+          <h2 className="text-2xl font-light mb-4">Request Submitted!</h2>
           <p className="text-gray-400 mb-6">
-            Thank you for applying for the FieldX Freemium Plan. Our team will review your application and contact you shortly with your access details.
+            Thank you for your interest in FieldX. Our team will review your information and contact you shortly with pricing details.
           </p>
           <p className="text-gray-400 mb-6">
             You will be redirected to the homepage in a few seconds.

@@ -64,7 +64,7 @@ const PricingPlans = () => {
       blurred: true
     },
     {
-      name: "Freemium",
+      name: "Standard",
       description: "For growing businesses",
       monthlyPrice: 400,
       yearlyPrice: 4000,
@@ -78,7 +78,7 @@ const PricingPlans = () => {
         { name: "API access", included: true },
         { name: "Basic analytics", included: true },
       ],
-      cta: "Choose Freemium",
+      cta: "Please Contact Us",
       popular: true,
       color: "blue-500"
     },
@@ -182,10 +182,10 @@ const PricingPlans = () => {
           transition={{ duration: 0.8 }}
         >
           <h2 className="text-4xl md:text-5xl font-light mb-6 tracking-wide">
-            Freemium <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600">Plan</span>
+            Pricing <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600">Plans</span>
           </h2>
           <p className="text-lg text-gray-400 max-w-3xl mx-auto mb-6">
-            Flexible freemium plan designed to meet the needs of every business, from small companies to large telecommunications providers.
+            Flexible pricing plans designed to meet the needs of every business, from small companies to large telecommunications providers.
           </p>
           
           <motion.div 
@@ -222,7 +222,7 @@ const PricingPlans = () => {
             </motion.button>
           </motion.div>
 
-          {/* Demo promotion banner */}
+          {/* Promotion banner */}
           <motion.div 
             className="bg-gradient-to-r from-blue-600/30 to-blue-400/30 p-4 rounded-xl backdrop-blur-sm border border-blue-500/30 max-w-xl mx-auto"
             initial={{ opacity: 0, y: 20 }}
@@ -232,7 +232,7 @@ const PricingPlans = () => {
           >
             <div className="flex items-center justify-center space-x-3">
               <Gift className="h-5 w-5 text-blue-300" />
-              <p className="text-blue-100 font-medium">Gain 28 days of freemium access. This is a demo.</p>
+              <p className="text-blue-100 font-medium">For pricing information, please contact our sales team.</p>
             </div>
           </motion.div>
         </motion.div>
@@ -268,7 +268,7 @@ const PricingPlans = () => {
                 >
                   <div className="flex items-center justify-center">
                     <Star className="w-3.5 h-3.5 mr-1.5 fill-current" />
-                    Freemium Plan
+                    Please Contact Us
                     <Star className="w-3.5 h-3.5 ml-1.5 fill-current" />
                   </div>
                 </motion.div>
@@ -341,9 +341,9 @@ const PricingPlans = () => {
                             <div className="relative z-10 flex flex-col items-center">
                               <div className="flex items-center justify-center mb-1">
                                 <Lock className="w-5 h-5 text-blue-400 mr-2" />
-                                <span className="text-white font-medium"></span>
+                                <span className="text-white font-medium">Contact Us</span>
                               </div>
-                              <span className="text-xs text-blue-300"></span>
+                              <span className="text-xs text-blue-300">For Pricing Details</span>
                             </div>
                           </motion.div>
                         ) : (
@@ -407,7 +407,7 @@ const PricingPlans = () => {
                     >
                       <Users className="w-5 h-5 text-blue-400" />
                     </motion.div>
-                    <span className="text-xs text-gray-400">{plan.name === "Basic" ? "2" : plan.name === "Freemium" ? "10" : "∞"}</span>
+                    <span className="text-xs text-gray-400">{plan.name === "Basic" ? "2" : plan.name === "Standard" ? "10" : "∞"}</span>
                   </motion.div>
                   
                   <motion.div 
@@ -425,7 +425,7 @@ const PricingPlans = () => {
                     >
                       <Zap className="w-5 h-5 text-blue-400" />
                     </motion.div>
-                    <span className="text-xs text-gray-400">{plan.name === "Basic" ? "Basic" : plan.name === "Freemium" ? "Fast" : "Ultra"}</span>
+                    <span className="text-xs text-gray-400">{plan.name === "Basic" ? "Basic" : plan.name === "Standard" ? "Fast" : "Ultra"}</span>
                   </motion.div>
                   
                   <motion.div 
@@ -443,7 +443,7 @@ const PricingPlans = () => {
                     >
                       <Shield className="w-5 h-5 text-blue-400" />
                     </motion.div>
-                    <span className="text-xs text-gray-400">{plan.name === "Basic" ? "Email" : plan.name === "Freemium" ? "Phone" : "24/7"}</span>
+                    <span className="text-xs text-gray-400">{plan.name === "Basic" ? "Email" : plan.name === "Standard" ? "Phone" : "24/7"}</span>
                   </motion.div>
                 </motion.div>
 
@@ -505,7 +505,7 @@ const PricingPlans = () => {
                       whileTap={{ scale: 0.97 }}
                       transition={{ type: "spring", stiffness: 400, damping: 10 }}
                     >
-                      <span>Choose Freemium</span>
+                      <span>Please Contact Us</span>
                       <motion.div
                         animate={{ 
                           y: [0, 3, 0], 
@@ -524,7 +524,7 @@ const PricingPlans = () => {
                   </Link>
                 )}
                 
-                {/* Freemium plan badges */}
+                {/* Plan badges */}
                 {plan.popular && (
                   <motion.div 
                     className="mt-4 flex flex-col items-center space-y-2"
@@ -533,10 +533,10 @@ const PricingPlans = () => {
                     transition={{ delay: 0.5 }}
                   >
                     <span className="bg-gradient-to-r from-emerald-500/10 to-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20 text-xs">
-                      28-Day Freemium Access
+                      Custom Pricing
                     </span>
                     <span className="bg-gradient-to-r from-blue-500/10 to-blue-500/20 text-blue-400 px-3 py-1 rounded-full border border-blue-500/20 text-xs">
-                      Demo Version
+                      Contact Sales Team
                     </span>
                   </motion.div>
                 )}
