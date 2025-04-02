@@ -1,45 +1,86 @@
-// pages/api/send-email.ts
-import type { NextApiRequest, NextApiResponse } from 'next'
-import nodemailer from 'nodemailer'
+// File: app/api/send-email/route.ts
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' })
-  }
+import { NextRequest, NextResponse } from 'next/server';
+import nodemailer from 'nodemailer';
+import { promises as fs } from 'fs';
+import path from 'path';
 
-  const { fullName, companyName, email, phone, description, selectedPlan, billingCycle } = req.body
+interface EmailData {
+  to: string;
+  subject: string;
+  body: string;
+  attachments: Array<{
+    name: string;
+    data: string;
+  }>;
+}
 
-  // Create a transporter using your email service (e.g., Gmail, SendGrid, etc.)
-  const transporter = nodemailer.createTransport({
-    service: 'gmail', // You can use other services like SendGrid, Mailgun, etc.
-    auth: {
-      user: process.env.EMAIL_USER, // Your email address (e.g., your Gmail address)
-      pass: process.env.EMAIL_PASS, // Your email password or app-specific password
-    },
-  })
+interface ApiResponse {
+  success: boolean;
+  message: string;
+}
 
-  // Email options
-  const mailOptions = {
-    from: process.env.EMAIL_USER, // Sender address
-    to: 'alexisarvas2005@gmail.com', // Recipient address
-    subject: 'New Application from FieldX',
-    text: `
-      New application received:
-
-      Full Name: ${fullName}
-      Company Name: ${companyName}
-      Email: ${email}
-      Phone: ${phone}
-      Description: ${description}
-      Selected Plan: ${selectedPlan.name} (${billingCycle === 'monthly' ? selectedPlan.monthlyPrice : selectedPlan.yearlyPrice}€ / ${billingCycle})
-    `,
-  }
-
+export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse>> {
   try {
-    await transporter.sendMail(mailOptions)
-    res.status(200).json({ message: 'Email sent successfully' })
+    // Parse the request body
+    const data: EmailData = await request.json();
+    
+    // Validate required fields
+    if (!data.to || !data.subject || !data.body) {
+      return NextResponse.json(
+        { success: false, message: 'Email recipient, subject, and body are required' },
+        { status: 400 }
+      );
+    }
+    
+    // Create a Nodemailer transporter (configure with your email provider)
+    const transporter = nodemailer.createTransport({
+      // For testing, you can use services like Mailtrap or your own SMTP server
+      host: process.env.SMTP_HOST || 'smtp.example.com',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER || 'your-email@example.com',
+        pass: process.env.SMTP_PASSWORD || 'your-password',
+      },
+    });
+    
+    // Prepare email attachments
+    const mailAttachments = data.attachments?.map(attachment => ({
+      filename: attachment.name,
+      content: attachment.data,
+      encoding: 'base64',
+    })) || [];
+    
+    // Send email
+    const info = await transporter.sendMail({
+      from: process.env.EMAIL_FROM || '"FieldX System" <system@fieldx.com>',
+      to: data.to,
+      subject: data.subject,
+      html: data.body,
+      attachments: mailAttachments,
+    });
+    
+    console.log('Email sent:', info.messageId);
+    
+    // Return success response
+    return NextResponse.json(
+      { 
+        success: true, 
+        message: 'Email sent successfully',
+      },
+      { status: 200 }
+    );
   } catch (error) {
-    console.error('Error sending email:', error)
-    res.status(500).json({ message: 'Failed to send email', error })
+    console.error('Error sending email:', error);
+    
+    // Return error response
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: 'An error occurred while sending the email. Please try again later.' 
+      },
+      { status: 500 }
+    );
   }
 }

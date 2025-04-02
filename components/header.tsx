@@ -72,9 +72,9 @@ export default function Header({ scrolled = false }) {
               </>
             ) : (
               <motion.div whileHover={{ scale: 1.05 }}>
-                <Link href="/login" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
+                {/* <Link href="/login" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
                   Login / Register
-                </Link>
+                </Link> */}
               </motion.div>
             )}
           </div>

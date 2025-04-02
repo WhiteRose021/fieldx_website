@@ -365,9 +365,9 @@ export default function Home() {
               ) : (
                 // Show login/register if not logged in
                 <motion.div className="flex items-center space-x-6" whileHover={{ scale: 1.05 }}>
-                  <Link href="/login" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
+                  {/* <Link href="/login" className="uppercase text-xs tracking-widest text-gray-800 hover:text-blue-600 transition-colors">
                     Login / Register
-                  </Link>
+                  </Link> */}
                 </motion.div>
               )}
             </div>
