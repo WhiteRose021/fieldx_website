@@ -1,4 +1,3 @@
-// app/company-info/page.tsx
 "use client"
 
 import { useState, useEffect, useRef, JSX } from 'react';
@@ -11,6 +10,7 @@ import Header from '@/components/header';
 import { ChevronLeft, Check, ArrowRight, ArrowLeft, Save, ChevronDown, X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import ReCAPTCHA from "react-google-recaptcha";
 
 // Type definitions
 interface UserType {
@@ -70,6 +70,10 @@ interface MultiSelectDropdownProps {
   value: string[];
   onChange: (e: { target: { name: string; value: any } }) => void;
   options: string[];
+}
+
+interface FormData extends Record<string, any> {
+  recaptchaToken?: string;
 }
 
 // FormSection Component
@@ -277,7 +281,9 @@ export default function CustomerEvaluationForm(): JSX.Element {
   const [currentSection, setCurrentSection] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitSuccess, setSubmitSuccess] = useState<boolean>(false);
-  const [formData, setFormData] = useState<Record<string, any>>({
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
+  
+  const [formData, setFormData] = useState<FormData>({
     companyName: '',
     industry: [],
     employeeCount: '',
@@ -323,12 +329,17 @@ export default function CustomerEvaluationForm(): JSX.Element {
     howHeard: '',
     decisionFactors: '',
     specificRequirements: '',
-    uniqueCustomerCode: ''
+    uniqueCustomerCode: '',
+    recaptchaToken: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | { target: { name: string; value: any } }): void => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleRecaptchaChange = (token: string | null) => {
+    setFormData(prev => ({ ...prev, recaptchaToken: token || '' }));
   };
 
   const generatePDF = async (): Promise<jsPDF> => {
@@ -496,8 +507,7 @@ export default function CustomerEvaluationForm(): JSX.Element {
     return doc;
   };
 
-// In app/company-info/page.tsx
-const sendEmailWithPDF = async (pdfDoc: jsPDF): Promise<boolean> => {
+  const sendEmailWithPDF = async (pdfDoc: jsPDF): Promise<boolean> => {
     try {
       const pdfBase64 = pdfDoc.output('datauristring');
       
@@ -534,58 +544,77 @@ const sendEmailWithPDF = async (pdfDoc: jsPDF): Promise<boolean> => {
     }
   };
 
-// Replace the submitFormData and handleSubmit functions in the CustomerEvaluationForm component
+  const submitFormData = async (data: FormData): Promise<{ success: boolean; message?: string }> => {
+    try {
+      // Verify reCAPTCHA token first
+      const verifyResponse = await fetch('/api/verify-recaptcha', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: data.recaptchaToken,
+        }),
+      });
 
-// Replace these functions in your page.tsx file
+      const verifyResult = await verifyResponse.json();
+      if (!verifyResult.success) {
+        return { success: false, message: 'reCAPTCHA verification failed' };
+      }
 
-const submitFormData = async (data: Record<string, any>): Promise<{ success: boolean; message?: string }> => {
-  try {
-    // Send data to the API endpoint
-    const response = await fetch('/api/submit-evaluation', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Server responded with status: ${response.status}`);
+      // Submit form data
+      const response = await fetch('/api/submit-evaluation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error submitting form data:", error);
+      return { success: false, message: 'Error submitting form data.' };
     }
-    
-    const result = await response.json();
-    return result;
-  } catch (error) {
-    console.error("Error submitting form data:", error);
-    return { success: false, message: 'Error submitting form data.' };
-  }
-};
+  };
 
-const handleSubmit = async (): Promise<void> => {
-  setIsSubmitting(true);
-  
-  try {
-    // Submit form data
-    const result = await submitFormData(formData);
-    
-    if (result.success) {
-      // Set success state
-      setSubmitSuccess(true);
-      
-      // Redirect after showing success message
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 2000);
-    } else {
-      alert(result.message || 'Failed to submit form. Please try again.');
+  const handleSubmit = async (): Promise<void> => {
+    setIsSubmitting(true);
+
+    try {
+      // Execute reCAPTCHA
+      if (recaptchaRef.current) {
+        await recaptchaRef.current.executeAsync();
+      }
+
+      const result = await submitFormData(formData);
+
+      if (result.success) {
+        setSubmitSuccess(true);
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 2000);
+      } else {
+        alert(result.message || 'Failed to submit form. Please try again.');
+        if (recaptchaRef.current) {
+          recaptchaRef.current.reset();
+        }
+      }
+    } catch (error) {
+      console.error("Error in form submission:", error);
+      alert('An error occurred. Please try again.');
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-  } catch (error) {
-    console.error("Error in form submission:", error);
-    alert('An error occurred. Please try again.');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  };
 
   const sectionCount = 10;
   const goToNextSection = (): void => {
@@ -773,10 +802,14 @@ const handleSubmit = async (): Promise<void> => {
               ) : (
                 <motion.button
                   onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className={`flex items-center justify-center py-3 px-6 rounded-md font-medium transition-colors ${!isSubmitting ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-gray-700 text-gray-300 cursor-not-allowed'}`}
-                  whileHover={!isSubmitting ? { scale: 1.05 } : {}}
-                  whileTap={!isSubmitting ? { scale: 0.95 } : {}}
+                  disabled={isSubmitting || !formData.recaptchaToken}
+                  className={`flex items-center justify-center py-3 px-6 rounded-md font-medium transition-colors ${
+                    !isSubmitting && formData.recaptchaToken 
+                      ? 'bg-blue-600 hover:bg-blue-500 text-white' 
+                      : 'bg-gray-700 text-gray-300 cursor-not-allowed'
+                  }`}
+                  whileHover={!isSubmitting && formData.recaptchaToken ? { scale: 1.05 } : {}}
+                  whileTap={!isSubmitting && formData.recaptchaToken ? { scale: 0.95 } : {}}
                 >
                   {isSubmitting ? (
                     <span className="flex items-center">
@@ -794,6 +827,15 @@ const handleSubmit = async (): Promise<void> => {
                   )}
                 </motion.button>
               )}
+            </div>
+            
+            <div className="max-w-3xl mx-auto mb-8">
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                size="invisible"
+                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
+                onChange={handleRecaptchaChange}
+              />
             </div>
             
             {submitSuccess && (
