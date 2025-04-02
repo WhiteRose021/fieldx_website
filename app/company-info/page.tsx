@@ -12,6 +12,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ReCAPTCHA from "react-google-recaptcha";
 
+
 // Type definitions
 interface UserType {
   email?: string;
@@ -281,6 +282,7 @@ export default function CustomerEvaluationForm(): JSX.Element {
   const [currentSection, setCurrentSection] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitSuccess, setSubmitSuccess] = useState<boolean>(false);
+  const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   
   const [formData, setFormData] = useState<FormData>({
@@ -333,12 +335,31 @@ export default function CustomerEvaluationForm(): JSX.Element {
     recaptchaToken: '',
   });
 
+  // Execute reCAPTCHA when the component mounts
+  useEffect(() => {
+    const executeRecaptcha = async () => {
+      try {
+        if (recaptchaRef.current) {
+          await recaptchaRef.current.executeAsync();
+        }
+      } catch (error) {
+        console.error("Error executing reCAPTCHA:", error);
+        setRecaptchaError("Failed to load reCAPTCHA. Please refresh the page.");
+      }
+    };
+
+    if (!formData.recaptchaToken) {
+      executeRecaptcha();
+    }
+  }, [formData.recaptchaToken]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | { target: { name: string; value: any } }): void => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleRecaptchaChange = (token: string | null) => {
+    setRecaptchaError(null); // Clear any previous errors
     setFormData(prev => ({ ...prev, recaptchaToken: token || '' }));
   };
 
@@ -562,7 +583,15 @@ export default function CustomerEvaluationForm(): JSX.Element {
         return { success: false, message: 'reCAPTCHA verification failed' };
       }
 
-      // Submit form data
+      // Generate PDF
+      const pdfDoc = await generatePDF();
+      const emailSent = await sendEmailWithPDF(pdfDoc);
+
+      if (!emailSent) {
+        return { success: false, message: 'Form submitted, but failed to send email.' };
+      }
+
+      // Submit form data to your API (if needed)
       const response = await fetch('/api/submit-evaluation', {
         method: 'POST',
         headers: {
@@ -576,7 +605,7 @@ export default function CustomerEvaluationForm(): JSX.Element {
       }
 
       const result = await response.json();
-      return result;
+      return { success: true, message: 'Form submitted successfully!' };
     } catch (error) {
       console.error("Error submitting form data:", error);
       return { success: false, message: 'Error submitting form data.' };
@@ -585,29 +614,91 @@ export default function CustomerEvaluationForm(): JSX.Element {
 
   const handleSubmit = async (): Promise<void> => {
     setIsSubmitting(true);
-
+  
     try {
-      // Execute reCAPTCHA
-      if (recaptchaRef.current) {
-        await recaptchaRef.current.executeAsync();
-      }
-
-      const result = await submitFormData(formData);
-
-      if (result.success) {
-        setSubmitSuccess(true);
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 2000);
-      } else {
-        alert(result.message || 'Failed to submit form. Please try again.');
-        if (recaptchaRef.current) {
-          recaptchaRef.current.reset();
+      // Step 1: Ensure reCAPTCHA token is available
+      if (!formData.recaptchaToken && recaptchaRef.current) {
+        try {
+          const token = await recaptchaRef.current.executeAsync();
+          setFormData(prev => ({ ...prev, recaptchaToken: token || '' }));
+        } catch (recaptchaError) {
+          console.error("Error executing reCAPTCHA:", recaptchaError);
+          setRecaptchaError("Failed to verify reCAPTCHA. Please refresh and try again.");
+          setIsSubmitting(false);
+          return;
         }
       }
+  
+      // Step 2: Verify reCAPTCHA token
+      const verifyResponse = await fetch('/api/verify-recaptcha', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: formData.recaptchaToken,
+        }),
+      });
+  
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || `reCAPTCHA verification failed: ${verifyResponse.status}`);
+      }
+  
+      // Step 3: Generate PDF
+      const pdfDoc = await generatePDF();
+      const pdfBase64 = pdfDoc.output('datauristring');
+  
+      // Step 4: Send email with PDF
+      const emailResponse = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: 'alexisarvas2005@gmail.com',
+          subject: `Νέα Φόρμα Αξιολόγησης Πελάτη - ${formData.companyName || 'Μη καταχωρημένη'}`,
+          body: `<p>Συνημμένα θα βρείτε μια νέα φόρμα αξιολόγησης πελάτη από την εταιρεία "${formData.companyName || 'Μη καταχωρημένη'}".</p>`,
+          attachments: [
+            {
+              name: `customer-evaluation-${formData.companyName}-${new Date().toISOString().slice(0, 10)}.pdf`,
+              data: pdfBase64.split(',')[1]
+            }
+          ]
+        }),
+      });
+  
+      if (!emailResponse.ok) {
+        console.warn("Email sending failed, but continuing with form submission");
+      }
+  
+      // Step 5: Submit form data
+      const submitResponse = await fetch('/api/submit-evaluation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+  
+      if (!submitResponse.ok) {
+        const errorData = await submitResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || `Form submission failed: ${submitResponse.status}`);
+      }
+  
+      // Save PDF locally as well
+      pdfDoc.save(`customer-evaluation-${formData.companyName}-${new Date().toISOString().slice(0, 10)}.pdf`);
+  
+      // Success
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
     } catch (error) {
       console.error("Error in form submission:", error);
-      alert('An error occurred. Please try again.');
+      alert(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Reset reCAPTCHA if there was an error
       if (recaptchaRef.current) {
         recaptchaRef.current.reset();
       }
@@ -615,6 +706,7 @@ export default function CustomerEvaluationForm(): JSX.Element {
       setIsSubmitting(false);
     }
   };
+
 
   const sectionCount = 10;
   const goToNextSection = (): void => {
@@ -717,7 +809,6 @@ export default function CustomerEvaluationForm(): JSX.Element {
                 <TextField label="Σύστημα διαχείρισης εγγράφων που αφορούν εργασίες ή πελάτες (εάν υπάρχει)" name="documentManagementSystem" value={formData.documentManagementSystem} onChange={handleChange} placeholder="πχ. SharePoint, Dropbox, Google Drive" />
                 <TextField label="Πως γίνεται η διαδικασία της τιμολόγησης" name="billingProcess" value={formData.billingProcess} onChange={handleChange} placeholder="Περιγράψτε τη διαδικασία τιμολόγησης" />
               </FormSection>
-              
               <FormSection title="4. Προβλήματα & Προκλήσεις" description="Μοιραστείτε τις δυσκολίες που αντιμετωπίζετε στις καθημερινές εργασίες." current={currentSection} index={3}>
                 <TextField label="Κορυφαίες 3 προκλήσεις που αντιμετωπίζετε" name="topChallenges" value={formData.topChallenges} onChange={handleChange} multiline={true} placeholder="Περιγράψτε τις 3 σημαντικότερες προκλήσεις που αντιμετωπίζετε στις καθημερινές εργασίες" />
                 <NumberField label="Εκτιμώμενος χρόνος σε διοικητικές εργασίες (ώρες ανά τεχνικό ανά εβδομάδα)" name="administrativeHours" value={formData.administrativeHours} onChange={handleChange} placeholder="πχ. 10" />
@@ -802,14 +893,14 @@ export default function CustomerEvaluationForm(): JSX.Element {
               ) : (
                 <motion.button
                   onClick={handleSubmit}
-                  disabled={isSubmitting || !formData.recaptchaToken}
+                  disabled={isSubmitting || recaptchaError !== null}
                   className={`flex items-center justify-center py-3 px-6 rounded-md font-medium transition-colors ${
-                    !isSubmitting && formData.recaptchaToken 
+                    !isSubmitting && recaptchaError === null 
                       ? 'bg-blue-600 hover:bg-blue-500 text-white' 
                       : 'bg-gray-700 text-gray-300 cursor-not-allowed'
                   }`}
-                  whileHover={!isSubmitting && formData.recaptchaToken ? { scale: 1.05 } : {}}
-                  whileTap={!isSubmitting && formData.recaptchaToken ? { scale: 0.95 } : {}}
+                  whileHover={!isSubmitting && recaptchaError === null ? { scale: 1.05 } : {}}
+                  whileTap={!isSubmitting && recaptchaError === null ? { scale: 0.95 } : {}}
                 >
                   {isSubmitting ? (
                     <span className="flex items-center">
@@ -838,8 +929,18 @@ export default function CustomerEvaluationForm(): JSX.Element {
               />
             </div>
             
-            {submitSuccess && (
+            {recaptchaError && (
               <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="max-w-3xl mx-auto p-4 mb-8 bg-red-500 bg-opacity-20 border border-red-500 rounded-md text-red-500 text-center"
+              >
+                <span>{recaptchaError}</span>
+              </motion.div>
+            )}
+            
+            {submitSuccess && (
+                <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="max-w-3xl mx-auto p-4 mb-8 bg-green-500 bg-opacity-20 border border-green-500 rounded-md text-green-500 text-center"
@@ -853,13 +954,14 @@ export default function CustomerEvaluationForm(): JSX.Element {
             )}
           </div>
         </div>
-        
-        <footer className="bg-black border-t border-gray-800 py-8">
-          <div className="container mx-auto px-4 text-center">
-            <p className="text-gray-500 text-sm">© {new Date().getFullYear()} Arvanitis G. All rights reserved.</p>
-          </div>
-        </footer>
       </div>
-    </PageTransitionWrapper>
-  );
+      
+      <footer className="bg-black border-t border-gray-800 py-8">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-gray-500 text-sm">© {new Date().getFullYear()} Arvanitis G. All rights reserved.</p>
+        </div>
+      </footer>
+
+  </PageTransitionWrapper>
+);
 }

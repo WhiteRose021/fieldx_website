@@ -1,30 +1,56 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { NextResponse } from 'next/server';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, message: 'Method not allowed' });
-  }
-
-  const { token } = req.body;
-
+export async function POST(request: Request) {
   try {
-    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+    const { token } = await request.json();
+
+    if (!token) {
+      return NextResponse.json({ success: false, message: 'reCAPTCHA token is missing' }, { status: 400 });
+    }
+
+    const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+    
+    if (!secretKey) {
+      console.error('RECAPTCHA_SECRET_KEY is not defined in environment variables');
+      return NextResponse.json(
+        { success: false, message: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    // Google's reCAPTCHA verification endpoint requires the request to be sent as application/x-www-form-urlencoded
+    const verificationURL = `https://www.google.com/recaptcha/api/siteverify`;
+    const formData = new URLSearchParams();
+    formData.append('secret', secretKey);
+    formData.append('response', token);
+
+    const verificationResponse = await fetch(verificationURL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${token}`,
+      body: formData.toString(),
     });
 
-    const data = await response.json();
+    const verificationData = await verificationResponse.json();
 
-    if (data.success && data.score >= 0.5) { // Adjust score threshold as needed
-      res.status(200).json({ success: true });
-    } else {
-      res.status(400).json({ success: false, message: 'reCAPTCHA verification failed' });
+    if (!verificationData.success) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'reCAPTCHA verification failed', 
+          errors: verificationData['error-codes'] 
+        },
+        { status: 400 }
+      );
     }
+
+    return NextResponse.json({ success: true, message: 'reCAPTCHA verification successful' }, { status: 200 });
   } catch (error) {
-    console.error('reCAPTCHA verification error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error verifying reCAPTCHA:', error);
+    return NextResponse.json(
+      { success: false, message: 'Internal server error during reCAPTCHA verification' },
+      { status: 500 }
+    );
   }
 }
