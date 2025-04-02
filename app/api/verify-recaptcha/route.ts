@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Google's reCAPTCHA verification endpoint requires the request to be sent as application/x-www-form-urlencoded
+    // Google's reCAPTCHA verification endpoint
     const verificationURL = `https://www.google.com/recaptcha/api/siteverify`;
     const formData = new URLSearchParams();
     formData.append('secret', secretKey);

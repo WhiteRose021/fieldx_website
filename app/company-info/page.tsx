@@ -613,16 +613,26 @@ export default function CustomerEvaluationForm(): JSX.Element {
   };
 
   const handleSubmit = async (): Promise<void> => {
+    console.log("🔍 [DEBUG] Starting form submission process");
     setIsSubmitting(true);
-  
+    
     try {
       // Step 1: Ensure reCAPTCHA token is available
+      console.log("🔍 [DEBUG] Checking if reCAPTCHA token exists:", !!formData.recaptchaToken);
+      
       if (!formData.recaptchaToken && recaptchaRef.current) {
+        console.log("🔍 [DEBUG] No token found, executing reCAPTCHA");
         try {
+          console.log("🔍 [DEBUG] reCAPTCHA ref exists:", !!recaptchaRef.current);
           const token = await recaptchaRef.current.executeAsync();
-          setFormData(prev => ({ ...prev, recaptchaToken: token || '' }));
+          console.log("🔍 [DEBUG] reCAPTCHA executed successfully, token received:", !!token);
+          
+          setFormData(prev => {
+            console.log("🔍 [DEBUG] Updating form data with reCAPTCHA token");
+            return { ...prev, recaptchaToken: token || '' };
+          });
         } catch (recaptchaError) {
-          console.error("Error executing reCAPTCHA:", recaptchaError);
+          console.error("❌ [ERROR] Error executing reCAPTCHA:", recaptchaError);
           setRecaptchaError("Failed to verify reCAPTCHA. Please refresh and try again.");
           setIsSubmitting(false);
           return;
@@ -630,83 +640,130 @@ export default function CustomerEvaluationForm(): JSX.Element {
       }
   
       // Step 2: Verify reCAPTCHA token
-      const verifyResponse = await fetch('/api/verify-recaptcha', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          token: formData.recaptchaToken,
-        }),
-      });
+      console.log("🔍 [DEBUG] Sending reCAPTCHA verification request to /api/verify-recaptcha");
+      console.log("🔍 [DEBUG] Token length:", formData.recaptchaToken ? formData.recaptchaToken.length : 0);
+      
+      let verifyResponse;
+      try {
+        verifyResponse = await fetch('/api/verify-recaptcha', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token: formData.recaptchaToken,
+          }),
+        });
+        
+        console.log("🔍 [DEBUG] reCAPTCHA verification response status:", verifyResponse.status);
+        console.log("🔍 [DEBUG] reCAPTCHA verification response OK:", verifyResponse.ok);
+        
+        // Log the full response for debugging
+        const responseClone = verifyResponse.clone();
+        const responseText = await responseClone.text();
+        console.log("🔍 [DEBUG] reCAPTCHA verification raw response:", responseText);
+        
+        // Try to parse as JSON if possible
+        try {
+          const jsonData = JSON.parse(responseText);
+          console.log("🔍 [DEBUG] reCAPTCHA verification JSON response:", jsonData);
+        } catch (e) {
+          console.log("🔍 [DEBUG] Response is not valid JSON");
+        }
+      } catch (fetchError) {
+        console.error("❌ [ERROR] Network error during reCAPTCHA verification:", fetchError);
+        throw new Error(`Network error during reCAPTCHA verification: ${fetchError.message}`);
+      }
   
       if (!verifyResponse.ok) {
-        const errorData = await verifyResponse.json().catch(() => ({}));
-        throw new Error(errorData.message || `reCAPTCHA verification failed: ${verifyResponse.status}`);
+        console.error("❌ [ERROR] reCAPTCHA verification failed with status:", verifyResponse.status);
+        
+        let errorMessage = `reCAPTCHA verification failed: ${verifyResponse.status}`;
+        try {
+          const errorData = await verifyResponse.json();
+          console.error("❌ [ERROR] reCAPTCHA verification error data:", errorData);
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.error("❌ [ERROR] Could not parse error response as JSON:", e);
+        }
+        
+        throw new Error(errorMessage);
       }
+      
+      console.log("✅ [DEBUG] reCAPTCHA verification successful");
   
-      // Step 3: Generate PDF
-      const pdfDoc = await generatePDF();
-      const pdfBase64 = pdfDoc.output('datauristring');
-  
-      // Step 4: Send email with PDF
-      const emailResponse = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          to: 'alexisarvas2005@gmail.com',
-          subject: `Νέα Φόρμα Αξιολόγησης Πελάτη - ${formData.companyName || 'Μη καταχωρημένη'}`,
-          body: `<p>Συνημμένα θα βρείτε μια νέα φόρμα αξιολόγησης πελάτη από την εταιρεία "${formData.companyName || 'Μη καταχωρημένη'}".</p>`,
-          attachments: [
-            {
-              name: `customer-evaluation-${formData.companyName}-${new Date().toISOString().slice(0, 10)}.pdf`,
-              data: pdfBase64.split(',')[1]
-            }
-          ]
-        }),
-      });
-  
-      if (!emailResponse.ok) {
-        console.warn("Email sending failed, but continuing with form submission");
+      // Step 3: Submit form data
+      console.log("🔍 [DEBUG] Sending form data to /api/submit-evaluation");
+      console.log("🔍 [DEBUG] Form data keys:", Object.keys(formData));
+      
+      let submitResponse;
+      try {
+        submitResponse = await fetch('/api/submit-evaluation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+        
+        console.log("🔍 [DEBUG] Form submission response status:", submitResponse.status);
+        console.log("🔍 [DEBUG] Form submission response OK:", submitResponse.ok);
+        
+        // Log the full response for debugging
+        const responseClone = submitResponse.clone();
+        const responseText = await responseClone.text();
+        console.log("🔍 [DEBUG] Form submission raw response:", responseText);
+        
+        // Try to parse as JSON if possible
+        try {
+          const jsonData = JSON.parse(responseText);
+          console.log("🔍 [DEBUG] Form submission JSON response:", jsonData);
+        } catch (e) {
+          console.log("🔍 [DEBUG] Response is not valid JSON");
+        }
+      } catch (fetchError) {
+        console.error("❌ [ERROR] Network error during form submission:", fetchError);
+        throw new Error(`Network error during form submission: ${fetchError.message}`);
       }
-  
-      // Step 5: Submit form data
-      const submitResponse = await fetch('/api/submit-evaluation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
   
       if (!submitResponse.ok) {
-        const errorData = await submitResponse.json().catch(() => ({}));
-        throw new Error(errorData.message || `Form submission failed: ${submitResponse.status}`);
+        console.error("❌ [ERROR] Form submission failed with status:", submitResponse.status);
+        
+        let errorMessage = `Form submission failed: ${submitResponse.status}`;
+        try {
+          const errorData = await submitResponse.json();
+          console.error("❌ [ERROR] Form submission error data:", errorData);
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.error("❌ [ERROR] Could not parse error response as JSON:", e);
+        }
+        
+        throw new Error(errorMessage);
       }
-  
-      // Save PDF locally as well
-      pdfDoc.save(`customer-evaluation-${formData.companyName}-${new Date().toISOString().slice(0, 10)}.pdf`);
+      
+      console.log("✅ [DEBUG] Form submission successful");
   
       // Success
+      console.log("✅ [DEBUG] Setting submission success and redirecting to dashboard");
       setSubmitSuccess(true);
       setTimeout(() => {
+        console.log("✅ [DEBUG] Redirecting to dashboard");
         router.push('/dashboard');
       }, 2000);
     } catch (error) {
-      console.error("Error in form submission:", error);
+      console.error("❌ [ERROR] Error in form submission:", error);
       alert(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // Reset reCAPTCHA if there was an error
       if (recaptchaRef.current) {
+        console.log("🔍 [DEBUG] Resetting reCAPTCHA after error");
         recaptchaRef.current.reset();
       }
     } finally {
+      console.log("🔍 [DEBUG] Form submission process completed");
       setIsSubmitting(false);
     }
   };
-
 
   const sectionCount = 10;
   const goToNextSection = (): void => {
