@@ -1,0 +1,17 @@
+{
+  "inquiryId": "eRQMvfywW0zOve6XUZ8O",
+  "timestamp": "2025-03-29T09:55:03.300Z",
+  "userData": {
+    "email": "ch.niforos@planet-tc.gr",
+    "name": "Christos",
+    "surname": "Niforos",
+    "company": "Planet-TC",
+    "phone": "6987894631",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

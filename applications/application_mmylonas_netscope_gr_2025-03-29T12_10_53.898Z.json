@@ -1,0 +1,17 @@
+{
+  "inquiryId": "T77dqLip9KDtg9HyCUtY",
+  "timestamp": "2025-03-29T12:10:53.898Z",
+  "userData": {
+    "email": "mmylonas@netscope.gr",
+    "name": "Meletis I.",
+    "surname": "Mylonas",
+    "company": "NetScope",
+    "phone": "6944342346",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

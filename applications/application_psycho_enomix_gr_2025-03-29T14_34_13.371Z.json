@@ -1,0 +1,17 @@
+{
+  "inquiryId": "M4uAZQu48rcvdb1yvh29",
+  "timestamp": "2025-03-29T14:34:13.371Z",
+  "userData": {
+    "email": "psycho@enomix.gr",
+    "name": "Σπυρος",
+    "surname": "Ψυχης",
+    "company": "ENOMIX",
+    "phone": "6997792447",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

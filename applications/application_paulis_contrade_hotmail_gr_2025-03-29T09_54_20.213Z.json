@@ -1,0 +1,17 @@
+{
+  "inquiryId": "V0mlXvniH2Go87gT62OB",
+  "timestamp": "2025-03-29T09:54:20.213Z",
+  "userData": {
+    "email": "paulis_contrade@hotmail.gr",
+    "name": "ΓΙΩΡΓΟΣ",
+    "surname": "Παυλής",
+    "company": "Οπτική τεχνική ΙΚΕ ",
+    "phone": "+306932215191",
+    "description": "Παρακαλώ επικοινωνήστε μαζί μου "
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

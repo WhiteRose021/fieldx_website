@@ -1,0 +1,17 @@
+{
+  "inquiryId": "A8n7HrfuotvyarcFE3YL",
+  "timestamp": "2025-03-29T15:12:17.165Z",
+  "userData": {
+    "email": "mtso@ftpoptic.gr",
+    "name": "Mixalis",
+    "surname": "Tsoubanas",
+    "company": "FTP OPTIC",
+    "phone": "6906418098",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

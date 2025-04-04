@@ -1,0 +1,17 @@
+{
+  "inquiryId": "OU6Ff2epRRjZwi65fi25",
+  "timestamp": "2025-03-29T16:37:25.052Z",
+  "userData": {
+    "email": "sokin19@gmail.com",
+    "name": "Nikos",
+    "surname": "Kouloukougiotis",
+    "company": "ACCULIN",
+    "phone": "6988627057",
+    "description": "Εργολάβος FTTH Κατασκευές Κατερίνη"
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

@@ -1,0 +1,17 @@
+{
+  "inquiryId": "MEW7UD8yCfTz7tmLsj8P",
+  "timestamp": "2025-03-29T09:54:59.787Z",
+  "userData": {
+    "email": "15228425@qq.com",
+    "name": "Henry",
+    "surname": "Lin",
+    "company": "Fiberhome",
+    "phone": "306906602092",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

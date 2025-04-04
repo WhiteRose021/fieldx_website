@@ -1,0 +1,17 @@
+{
+  "inquiryId": "lmS7qS0R4PKBEoo98l5c",
+  "timestamp": "2025-03-29T18:51:47.180Z",
+  "userData": {
+    "email": "mchalaris@digitalexpert.gr",
+    "name": "Markos",
+    "surname": "Chalaris",
+    "company": "DIGITAL EXPERT",
+    "phone": "+306988716017",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

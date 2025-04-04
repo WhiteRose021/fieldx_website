@@ -1,0 +1,17 @@
+{
+  "inquiryId": "elMuGJA7mfYFynfrDTgW",
+  "timestamp": "2025-03-29T09:54:39.322Z",
+  "userData": {
+    "email": "ioannis.karamichas@traxis.gr",
+    "name": "Ιωάννης",
+    "surname": "Καραμίχας",
+    "company": "TRAXIS ENGINEERING",
+    "phone": "+306980960050",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

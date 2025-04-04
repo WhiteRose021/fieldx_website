@@ -1,0 +1,17 @@
+{
+  "inquiryId": "dLEzy6eCstkMlBgJe2pp",
+  "timestamp": "2025-03-29T08:46:57.869Z",
+  "userData": {
+    "email": "kostas@techdirect.gr",
+    "name": "Kostas",
+    "surname": "Gkountelos",
+    "company": "TechDirect",
+    "phone": "6932302028",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

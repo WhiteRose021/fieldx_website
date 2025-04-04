@@ -1,0 +1,17 @@
+{
+  "inquiryId": "zC4qnwsblGwiLgjdPOqM",
+  "timestamp": "2025-03-28T14:24:41.621Z",
+  "userData": {
+    "email": "alexisarvas2005@gmail.com",
+    "name": "Teest",
+    "surname": "Teest",
+    "company": "Wordpress",
+    "phone": "+302102746639",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

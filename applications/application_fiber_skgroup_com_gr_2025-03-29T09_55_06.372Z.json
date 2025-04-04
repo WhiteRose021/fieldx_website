@@ -1,0 +1,17 @@
+{
+  "inquiryId": "fYwQrd1kFseCXQOVGL4L",
+  "timestamp": "2025-03-29T09:55:06.372Z",
+  "userData": {
+    "email": "fiber@skgroup.com.gr",
+    "name": "Φωτης",
+    "surname": "Κλιανης",
+    "company": "S&Kgroup",
+    "phone": "6949213562",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

@@ -1,0 +1,17 @@
+{
+  "inquiryId": "6hTMrdGTRXo5qo1jzltU",
+  "timestamp": "2025-03-29T09:54:51.033Z",
+  "userData": {
+    "email": "aineias.pitsari@gmail.com",
+    "name": "Aineias ",
+    "surname": "Pitsari ",
+    "company": "Combotech ",
+    "phone": "6971578740",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

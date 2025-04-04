@@ -1,0 +1,17 @@
+{
+  "inquiryId": "DMyx9Lh4eypRiEkH3SnY",
+  "timestamp": "2025-03-29T10:24:19.872Z",
+  "userData": {
+    "email": "info@linkwave.gr",
+    "name": "Νικόλαος",
+    "surname": "Πέιος",
+    "company": "LINKWAVE",
+    "phone": "6945414991",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

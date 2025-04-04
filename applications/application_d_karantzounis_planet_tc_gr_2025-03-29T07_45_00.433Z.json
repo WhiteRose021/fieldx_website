@@ -1,0 +1,17 @@
+{
+  "inquiryId": "C1QBwtmdb1BS16gMD2hp",
+  "timestamp": "2025-03-29T07:45:00.433Z",
+  "userData": {
+    "email": "d.karantzounis@planet-tc.gr",
+    "name": "Dimitris",
+    "surname": "Karantzounis",
+    "company": "Planet-Tc",
+    "phone": "6946216263",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

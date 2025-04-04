@@ -1,0 +1,17 @@
+{
+  "inquiryId": "nwevq7KTYUDZktiTxv9F",
+  "timestamp": "2025-03-29T16:36:26.317Z",
+  "userData": {
+    "email": "yannis.papageorgiou@hcn.gr",
+    "name": "Giannis",
+    "surname": "Papageorgiou",
+    "company": "HCN",
+    "phone": "6970242315",
+    "description": "Πάροχος "
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

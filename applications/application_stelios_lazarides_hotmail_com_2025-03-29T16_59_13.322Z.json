@@ -1,0 +1,17 @@
+{
+  "inquiryId": "TpOhCvbxRHrE14nMUTFq",
+  "timestamp": "2025-03-29T16:59:13.322Z",
+  "userData": {
+    "email": "stelios_lazarides@hotmail.com",
+    "name": " Stellios",
+    "surname": "Lazaridis",
+    "company": "EDIL",
+    "phone": "6945893177",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

@@ -1,0 +1,17 @@
+{
+  "inquiryId": "rwOXtdgSuUB7rakDmaEf",
+  "timestamp": "2025-03-29T09:55:01.103Z",
+  "userData": {
+    "email": "apapakostas@entrove.gr",
+    "name": "Aris",
+    "surname": "Papakostas",
+    "company": "Pasteque Technologies ",
+    "phone": "6948310779",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

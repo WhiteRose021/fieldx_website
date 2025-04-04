@@ -1,0 +1,28 @@
+[2025-03-26T10:24:41.690Z] 
+=== Restart script started ===
+[2025-03-26T10:24:41.789Z] Port 3000 is free
+[2025-03-26T10:24:41.879Z] Port 3001 is free
+[2025-03-26T10:24:41.972Z] Port 3002 is free
+[2025-03-26T10:24:42.044Z] Port 3003 is free
+[2025-03-26T10:24:42.148Z] Port 3004 is free
+[2025-03-26T10:24:42.256Z] Port 3005 is free
+[2025-03-26T10:24:42.344Z] Port 3006 is free
+[2025-03-26T10:24:42.425Z] Port 3007 is free
+[2025-03-26T10:24:42.523Z] Port 3008 is free
+[2025-03-26T10:24:42.609Z] Port 3009 is free
+[2025-03-26T10:24:42.692Z] Port 3010 is free
+[2025-03-26T10:24:42.692Z] Starting the app...
+[2025-03-26T10:24:42.694Z] App restarted with new PID: 2845006
+
+> FieldX@0.4.0 start
+> NODE_ENV=production node server.js
+
+ ⨯ uncaughtException:  Error: listen EADDRINUSE: address already in use :::3000
+    at <unknown> (Error: listen EADDRINUSE: address already in use :::3000)
+    at <unknown> (server.js:20:10) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}

@@ -1,0 +1,17 @@
+{
+  "inquiryId": "PuNo20MXYgmR8CWB2RBR",
+  "timestamp": "2025-03-29T09:54:46.508Z",
+  "userData": {
+    "email": "sottso@hikarinetworks.com",
+    "name": "Sotirios",
+    "surname": "Tsolakidis",
+    "company": "Hikari Networks",
+    "phone": "+306973848044",
+    "description": "Interested in both FieldX and Autosuite."
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

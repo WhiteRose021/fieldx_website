@@ -1,0 +1,17 @@
+{
+  "inquiryId": "5UJ6VVLZTkWyFKgaToOu",
+  "timestamp": "2025-03-29T09:54:13.141Z",
+  "userData": {
+    "email": "ndel@combotech.gr",
+    "name": "Nikos",
+    "surname": "Deligiannis",
+    "company": "Combotech ",
+    "phone": "+306948309833",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}

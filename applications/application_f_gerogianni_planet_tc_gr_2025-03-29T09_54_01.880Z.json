@@ -1,0 +1,17 @@
+{
+  "inquiryId": "Pm1UjbTt4Z6ZfN7xpMIJ",
+  "timestamp": "2025-03-29T09:54:01.880Z",
+  "userData": {
+    "email": "f.gerogianni@planet-tc.gr",
+    "name": "ΦΕΝΙΑ",
+    "surname": "ΓΕΡΟΓΙΑΝΝΗ",
+    "company": "Planet-tc",
+    "phone": "6980717171",
+    "description": ""
+  },
+  "plan": {
+    "type": "freemium",
+    "duration": "28 days"
+  },
+  "status": "pending"
+}
