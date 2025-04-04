@@ -280,6 +280,9 @@ export default function CustomerEvaluationForm(): JSX.Element {
   const [currentSection, setCurrentSection] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitSuccess, setSubmitSuccess] = useState<boolean>(false);
+
+  console.log("Loading:", loading, "User:", user); // Debug auth state
+  console.log("Current Section:", currentSection); // Debug section state
   
   const [formData, setFormData] = useState<FormData>({
     companyName: '',

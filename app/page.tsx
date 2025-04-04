@@ -315,6 +315,13 @@ export default function Home() {
   return (
     
     <PageTransitionWrapper>
+      <SEO
+        title="FieldX | CRM for Telecom Providers"
+        description="Advanced tools for fiber deployment, scheduling, and billing automation."
+        keywords="FTTH, CRM, FSM, fiber CRM, telecom project management"
+        url="https://fieldx.gr/company-info"
+        image="https://fieldx.gr/logo.png"
+      />
       
       <div className="min-h-screen bg-black text-white overflow-x-hidden">
       <FuturisticLights />
