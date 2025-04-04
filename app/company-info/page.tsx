@@ -8,7 +8,6 @@ import { useAuth } from '@/context/AuthContext';
 import { PageTransitionWrapper } from '@/components/page-transition';
 import Header from '@/components/header';
 import { ChevronLeft, Check, ArrowRight, ArrowLeft, Save, ChevronDown, X } from 'lucide-react';
-import ReCAPTCHA from "react-google-recaptcha";
 
 // Type definitions
 interface UserType {
@@ -70,15 +69,17 @@ interface MultiSelectDropdownProps {
   options: string[];
 }
 
-interface FormData extends Record<string, any> {
-  recaptchaToken?: string;
-}
+interface FormData extends Record<string, any> {}
 
-// FormSection Component
+// FormSection Component - Fixed to properly show/hide sections
 const FormSection: React.FC<FormSectionProps> = ({ title, description, children, current, index }) => {
   const isActive = current === index;
+  
+  // Return null instead of hiding with CSS to prevent rendering issues
+  if (!isActive) return null;
+  
   return (
-    <div className={`transition-all duration-500 ${isActive ? 'opacity-100' : 'opacity-0 hidden'}`}>
+    <div className="transition-all duration-500 opacity-100">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -279,8 +280,6 @@ export default function CustomerEvaluationForm(): JSX.Element {
   const [currentSection, setCurrentSection] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitSuccess, setSubmitSuccess] = useState<boolean>(false);
-  const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
-  const recaptchaRef = useRef<ReCAPTCHA>(null);
   
   const [formData, setFormData] = useState<FormData>({
     companyName: '',
@@ -328,134 +327,18 @@ export default function CustomerEvaluationForm(): JSX.Element {
     howHeard: '',
     decisionFactors: '',
     specificRequirements: '',
-    uniqueCustomerCode: '',
-    recaptchaToken: '',
+    uniqueCustomerCode: ''
   });
-
-  // Execute reCAPTCHA when the component mounts
-  useEffect(() => {
-    const executeRecaptcha = async () => {
-      try {
-        if (recaptchaRef.current) {
-          console.log("[DEBUG] Executing reCAPTCHA on component mount");
-          const token = await recaptchaRef.current.executeAsync();
-          console.log("[DEBUG] reCAPTCHA token generated:", !!token);
-          setFormData(prev => ({ ...prev, recaptchaToken: token || '' }));
-        }
-      } catch (error) {
-        console.error("[ERROR] Error executing reCAPTCHA:", error);
-        setRecaptchaError("Failed to load reCAPTCHA. Please refresh the page.");
-      }
-    };
-
-    if (!formData.recaptchaToken) {
-      executeRecaptcha();
-    }
-  }, [formData.recaptchaToken]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | { target: { name: string; value: any } }): void => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleRecaptchaChange = (token: string | null) => {
-    setRecaptchaError(null); // Clear any previous errors
-    console.log("[DEBUG] reCAPTCHA onChange handler called, token received:", !!token);
-    setFormData(prev => ({ ...prev, recaptchaToken: token || '' }));
-  };
-
+  // Simplified submission process without reCAPTCHA
   const handleSubmit = async (): Promise<void> => {
-    console.log("[DEBUG] Starting form submission process");
+    console.log("Starting form submission");
     setIsSubmitting(true);
-    
-    try {
-      // Step 1: Ensure reCAPTCHA token is available
-      console.log("[DEBUG] Checking if reCAPTCHA token exists:", !!formData.recaptchaToken);
-      
-      if (!formData.recaptchaToken && recaptchaRef.current) {
-        console.log("[DEBUG] No token found, executing reCAPTCHA");
-        try {
-          const token = await recaptchaRef.current.executeAsync();
-          console.log("[DEBUG] reCAPTCHA executed successfully, token received:", !!token);
-          console.log("[DEBUG] Token first 10 chars:", token ? token.substring(0, 10) + "..." : "No token");
-          
-          // Update form data with token
-          setFormData(prev => ({
-            ...prev,
-            recaptchaToken: token || ''
-          }));
-          
-          // Since state updates are asynchronous, use the token directly in the next step
-          await verifyAndSubmit(token);
-        } catch (recaptchaError) {
-          console.error("[ERROR] Error executing reCAPTCHA:", recaptchaError);
-          setRecaptchaError("Failed to verify reCAPTCHA. Please refresh and try again.");
-          setIsSubmitting(false);
-          return;
-        }
-      } else {
-        // Use existing token in form data
-        await verifyAndSubmit(formData.recaptchaToken);
-      }
-    } catch (error) {
-      console.error("[ERROR] Error in form submission:", error);
-      alert(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      
-      // Reset reCAPTCHA if there was an error
-      if (recaptchaRef.current) {
-        console.log("[DEBUG] Resetting reCAPTCHA after error");
-        recaptchaRef.current.reset();
-      }
-    } finally {
-      console.log("[DEBUG] Form submission process completed");
-      setIsSubmitting(false);
-    }
-  };
-
-  // Helper function for verification and submission
-  const verifyAndSubmit = async (token: string): Promise<void> => {
-    // Step 2: Verify reCAPTCHA token
-    console.log("[DEBUG] Sending reCAPTCHA verification request to /api/verify-recaptcha");
-    console.log("[DEBUG] Token length:", token ? token.length : 0);
-    
-    let verifyResponse;
-    try {
-      verifyResponse = await fetch('/api/verify-recaptcha', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token }),
-      });
-      
-      console.log("[DEBUG] reCAPTCHA verification response status:", verifyResponse.status);
-      console.log("[DEBUG] reCAPTCHA verification response OK:", verifyResponse.ok);
-      
-      // Log the full response for debugging
-      const responseClone = verifyResponse.clone();
-      const responseText = await responseClone.text();
-      console.log("[DEBUG] reCAPTCHA verification raw response:", responseText);
-      
-      if (!verifyResponse.ok) {
-        let errorMessage = `reCAPTCHA verification failed: ${verifyResponse.status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          console.error("[ERROR] reCAPTCHA verification error data:", errorData);
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          console.error("[ERROR] Could not parse error response as JSON:", e);
-        }
-        throw new Error(errorMessage);
-      }
-    } catch (fetchError) {
-      console.error("[ERROR] Error during reCAPTCHA verification:", fetchError);
-      throw new Error(`Error during reCAPTCHA verification: ${fetchError.message}`);
-    }
-    
-    console.log("[DEBUG] reCAPTCHA verification successful");
-
-    // Step 3: Submit form data to Firebase
-    console.log("[DEBUG] Sending form data to /api/submit-evaluation");
     
     try {
       const submitResponse = await fetch('/api/submit-evaluation', {
@@ -463,41 +346,34 @@ export default function CustomerEvaluationForm(): JSX.Element {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          recaptchaToken: token
-        }),
+        body: JSON.stringify(formData),
       });
-      
-      console.log("[DEBUG] Form submission response status:", submitResponse.status);
       
       if (!submitResponse.ok) {
         const responseText = await submitResponse.text();
-        console.error("[ERROR] Form submission failed:", responseText);
-        try {
-          const errorData = JSON.parse(responseText);
-          throw new Error(errorData.message || `Form submission failed: ${submitResponse.status}`);
-        } catch (e) {
-          throw new Error(`Form submission failed: ${submitResponse.status}`);
-        }
+        console.error("Form submission failed:", responseText);
+        throw new Error(`Form submission failed: ${submitResponse.status}`);
       }
       
       const result = await submitResponse.json();
-      console.log("[DEBUG] Form submission successful:", result);
+      console.log("Form submission successful:", result);
       
       // Success
       setSubmitSuccess(true);
       setTimeout(() => {
-        console.log("[DEBUG] Redirecting to dashboard");
+        console.log("Redirecting to dashboard");
         router.push('/dashboard');
       }, 2000);
-    } catch (submitError) {
-      console.error("[ERROR] Error submitting form:", submitError);
-      throw new Error(`Error submitting form: ${submitError.message}`);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      alert(`Προέκυψε σφάλμα κατά την υποβολή της φόρμας: ${error instanceof Error ? error.message : 'Άγνωστο σφάλμα'}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const sectionCount = 10;
+  
   const goToNextSection = (): void => {
     if (currentSection < sectionCount - 1) {
       setCurrentSection(currentSection + 1);
@@ -582,10 +458,114 @@ export default function CustomerEvaluationForm(): JSX.Element {
                 <TextField label="Διεύθυνση Εταιρείας" name="companyAddress" value={formData.companyAddress} onChange={handleChange} multiline={true} placeholder="Συμπληρώστε τη διεύθυνση της εταιρείας" />
               </FormSection>
               
-              {/* Other form sections remain the same */}
-              {/* ... */}
+              <FormSection 
+                title="2. Πληροφορίες Προσωπικού" 
+                description="Συμπληρώστε στοιχεία σχετικά με το προσωπικό της εταιρείας."
+                current={currentSection}
+                index={1}
+              >
+                <NumberField label="Αριθμός Τεχνικών Πεδίου" name="fieldTechnicians" value={formData.fieldTechnicians} onChange={handleChange} placeholder="πχ. 15" />
+                <NumberField label="Αριθμός Προσωπικού Γραφείου" name="officeStaff" value={formData.officeStaff} onChange={handleChange} placeholder="πχ. 5" />
+                <NumberField label="Αριθμός Διευθυντών" name="managers" value={formData.managers} onChange={handleChange} placeholder="πχ. 2" />
+              </FormSection>
               
-              <FormSection title="10. Πρόσθετες Πληροφορίες" description="Παρέχετε επιπλέον πληροφορίες που μπορεί να είναι χρήσιμες." current={currentSection} index={9}>
+              <FormSection 
+                title="3. Τρέχον Σύστημα" 
+                description="Περιγράψτε το τρέχον σύστημα διαχείρισης εργασιών σας."
+                current={currentSection}
+                index={2}
+              >
+                <TextField label="Τρέχον Σύστημα Διαχείρισης" name="currentSystem" value={formData.currentSystem} onChange={handleChange} placeholder="Περιγράψτε το τρέχον σύστημα που χρησιμοποιείτε" />
+                <TextField label="Διαδικασία Ανάθεσης Εργασιών" name="taskAssignmentProcess" value={formData.taskAssignmentProcess} onChange={handleChange} multiline={true} placeholder="Περιγράψτε πώς αναθέτετε εργασίες στους τεχνικούς" />
+                <NumberField label="Μηνιαίος Αριθμός Εργασιών" name="monthlyTaskCount" value={formData.monthlyTaskCount} onChange={handleChange} placeholder="πχ. 500" />
+                <TextField label="Μέσος Χρόνος Ολοκλήρωσης Εργασίας" name="averageTaskCompletion" value={formData.averageTaskCompletion} onChange={handleChange} placeholder="πχ. 2 ώρες" />
+              </FormSection>
+              
+              <FormSection 
+                title="4. Διαδικασίες" 
+                description="Περιγράψτε τις βασικές διαδικασίες λειτουργίας."
+                current={currentSection}
+                index={3}
+              >
+                <CheckboxGroup label="Μέθοδος Προγραμματισμού Τεχνικών" name="technicianSchedulingMethod" value={formData.technicianSchedulingMethod} onChange={handleChange} options={['Χειροκίνητα', 'Excel/Ημερολόγιο', 'Ειδικό λογισμικό', 'Άλλο']} />
+                <TextField label="Διαχείριση Αιτημάτων Πελατών" name="customerRequestHandling" value={formData.customerRequestHandling} onChange={handleChange} multiline={true} placeholder="Περιγράψτε πώς διαχειρίζεστε τα αιτήματα πελατών" />
+                <TextField label="Σύστημα Διαχείρισης Εγγράφων" name="documentManagementSystem" value={formData.documentManagementSystem} onChange={handleChange} placeholder="Περιγράψτε το σύστημα διαχείρισης εγγράφων" />
+                <TextField label="Διαδικασία Τιμολόγησης" name="billingProcess" value={formData.billingProcess} onChange={handleChange} multiline={true} placeholder="Περιγράψτε τη διαδικασία τιμολόγησης" />
+              </FormSection>
+              
+              <FormSection 
+                title="5. Προκλήσεις" 
+                description="Περιγράψτε τις βασικές προκλήσεις που αντιμετωπίζετε."
+                current={currentSection}
+                index={4}
+              >
+                <TextField label="Κορυφαίες Προκλήσεις" name="topChallenges" value={formData.topChallenges} onChange={handleChange} multiline={true} placeholder="Περιγράψτε τις κορυφαίες προκλήσεις που αντιμετωπίζετε" />
+                <TextField label="Διοικητικές Ώρες" name="administrativeHours" value={formData.administrativeHours} onChange={handleChange} placeholder="Εκτιμώμενες ώρες που αφιερώνονται σε διοικητικές εργασίες ανά εβδομάδα" />
+                <TextField label="Προκλήσεις Υποστήριξης Γραφείου" name="supportOfficeChallenges" value={formData.supportOfficeChallenges} onChange={handleChange} multiline={true} placeholder="Περιγράψτε τις προκλήσεις που αντιμετωπίζετε με την υποστήριξη γραφείου" />
+                <TextField label="Προβλήματα Επικοινωνίας με Πελάτες" name="customerCommunicationProblems" value={formData.customerCommunicationProblems} onChange={handleChange} multiline={true} placeholder="Περιγράψτε τα προβλήματα επικοινωνίας με τους πελάτες" />
+                <TextField label="Περιορισμοί Αναφορών" name="reportingLimitations" value={formData.reportingLimitations} onChange={handleChange} multiline={true} placeholder="Περιγράψτε τους περιορισμούς αναφορών" />
+                <TextField label="Ελλείψεις Προγραμματισμού" name="schedulingDeficiencies" value={formData.schedulingDeficiencies} onChange={handleChange} multiline={true} placeholder="Περιγράψτε τις ελλείψεις προγραμματισμού" />
+              </FormSection>
+              
+              <FormSection 
+                title="6. Μετρήσεις" 
+                description="Παρέχετε μετρήσεις απόδοσης."
+                current={currentSection}
+                index={5}
+              >
+                <TextField label="Μέσος Χρόνος Μετακίνησης" name="averageTravelTime" value={formData.averageTravelTime} onChange={handleChange} placeholder="Μέσος χρόνος μετακίνησης μεταξύ εργασιών" />
+                <TextField label="Μέσος Χρόνος Εργασίας" name="averageTaskTime" value={formData.averageTaskTime} onChange={handleChange} placeholder="Μέσος χρόνος ολοκλήρωσης εργασίας" />
+                <TextField label="Ικανοποίηση Πελατών" name="customerSatisfaction" value={formData.customerSatisfaction} onChange={handleChange} placeholder="Βαθμολογία ικανοποίησης πελατών (εάν διαθέσιμη)" />
+                <TextField label="Ποσοστό Επανεπίσκεψης" name="revisitPercentage" value={formData.revisitPercentage} onChange={handleChange} placeholder="% εργασιών που απαιτούν επανεπίσκεψη" />
+                <TextField label="Χρόνος Ολοκλήρωσης Εγγράφων" name="documentCompletionTime" value={formData.documentCompletionTime} onChange={handleChange} placeholder="Χρόνος για την ολοκλήρωση εγγράφων μετά την εργασία" />
+                <TextField label="Ποσοστό Επιτυχίας Πρώτης Επίσκεψης" name="firstVisitSuccessRate" value={formData.firstVisitSuccessRate} onChange={handleChange} placeholder="% εργασιών που ολοκληρώνονται στην πρώτη επίσκεψη" />
+              </FormSection>
+              
+              <FormSection 
+                title="7. Απαιτήσεις Συστήματος" 
+                description="Προσδιορίστε τις απαιτήσεις σας για το νέο σύστημα."
+                current={currentSection}
+                index={6}
+              >
+                <NumberField label="Αριθμός Τεχνικών Κινητών" name="mobileTechnicians" value={formData.mobileTechnicians} onChange={handleChange} placeholder="Αριθμός τεχνικών που θα χρησιμοποιούν την εφαρμογή κινητού" />
+                <NumberField label="Αριθμός Χρηστών Web" name="officeWebUsers" value={formData.officeWebUsers} onChange={handleChange} placeholder="Αριθμός χρηστών γραφείου που θα χρησιμοποιούν την εφαρμογή web" />
+                <NumberField label="Αριθμός Χρηστών Διαχείρισης" name="managementUsers" value={formData.managementUsers} onChange={handleChange} placeholder="Αριθμός χρηστών διαχείρισης" />
+                <TextField label="Απαιτήσεις Ενσωμάτωσης" name="integrationRequirements" value={formData.integrationRequirements} onChange={handleChange} multiline={true} placeholder="Περιγράψτε τις απαιτήσεις ενσωμάτωσης με άλλα συστήματα" />
+                <CheckboxGroup label="Προτιμήσεις Κινητών" name="mobilePreferences" value={formData.mobilePreferences} onChange={handleChange} options={['iOS', 'Android', 'Προβολή web']} />
+              </FormSection>
+              
+              <FormSection 
+                title="8. Μετάβαση και Ασφάλεια" 
+                description="Προσδιορίστε τις απαιτήσεις μετάβασης και ασφάλειας."
+                current={currentSection}
+                index={7}
+              >
+                <TextField label="Απαιτήσεις Μετάβασης Δεδομένων" name="dataMigrationRequirements" value={formData.dataMigrationRequirements} onChange={handleChange} multiline={true} placeholder="Περιγράψτε τις απαιτήσεις μετάβασης δεδομένων" />
+                <TextField label="Έτη Ιστορικού Δεδομένων" name="dataHistoryYears" value={formData.dataHistoryYears} onChange={handleChange} placeholder="Πόσα έτη ιστορικού δεδομένων χρειάζεστε;" />
+                <TextField label="Απαιτήσεις Ασφαλείας" name="securityRequirements" value={formData.securityRequirements} onChange={handleChange} multiline={true} placeholder="Περιγράψτε τις απαιτήσεις ασφαλείας σας" />
+                <TextField label="Επιθυμητό Χρονοδιάγραμμα" name="desiredTimeline" value={formData.desiredTimeline} onChange={handleChange} placeholder="Ποιο είναι το επιθυμητό χρονοδιάγραμμα υλοποίησης;" />
+                <TextField label="Απαιτήσεις Εκπαίδευσης" name="trainingRequirements" value={formData.trainingRequirements} onChange={handleChange} multiline={true} placeholder="Περιγράψτε τις απαιτήσεις εκπαίδευσης σας" />
+              </FormSection>
+              
+              <FormSection 
+                title="9. Μελλοντικές Ανάγκες" 
+                description="Περιγράψτε τις μελλοντικές ανάγκες και τα σχέδια ανάπτυξης."
+                current={currentSection}
+                index={8}
+              >
+                <TextField label="Προσαρμοσμένες Απαιτήσεις Λειτουργιών" name="customFunctionRequirements" value={formData.customFunctionRequirements} onChange={handleChange} multiline={true} placeholder="Περιγράψτε τυχόν προσαρμοσμένες απαιτήσεις λειτουργιών" />
+                <CheckboxGroup label="Εστίαση ROI" name="roiFocus" value={formData.roiFocus} onChange={handleChange} options={['Εξοικονόμηση χρόνου', 'Μείωση διοικητικής εργασίας', 'Βελτιωμένες αναφορές', 'Αυξημένη παραγωγικότητα', 'Βελτιωμένη εμπειρία πελάτη']} />
+                <TextField label="Σχέδια Ανάπτυξης" name="growthPlans" value={formData.growthPlans} onChange={handleChange} multiline={true} placeholder="Περιγράψτε σχέδια ανάπτυξης για τα επόμενα 2-3 χρόνια" />
+                <TextField label="Γεωγραφική Επέκταση" name="geographicExpansion" value={formData.geographicExpansion} onChange={handleChange} multiline={true} placeholder="Περιγράψτε τυχόν σχέδια γεωγραφικής επέκτασης" />
+                <TextField label="Σχεδιασμένες Υπηρεσίες" name="plannedServices" value={formData.plannedServices} onChange={handleChange} multiline={true} placeholder="Περιγράψτε νέες υπηρεσίες που σκοπεύετε να προσφέρετε" />
+              </FormSection>
+              
+              <FormSection 
+                title="10. Πρόσθετες Πληροφορίες" 
+                description="Παρέχετε επιπλέον πληροφορίες που μπορεί να είναι χρήσιμες." 
+                current={currentSection} 
+                index={9}
+              >
                 <SelectField label="Πώς μάθατε για τη λύση μας;" name="howHeard" value={formData.howHeard} onChange={handleChange} options={['Διαδίκτυο', 'Σύσταση', 'Εκδήλωση', 'LinkedIn', 'Άλλο']} />
                 <TextField label="Ποιοι παράγοντες είναι σημαντικότεροι στη διαδικασία λήψης αποφάσεων;" name="decisionFactors" value={formData.decisionFactors} onChange={handleChange} multiline={true} placeholder="Περιγράψτε τους παράγοντες που επηρεάζουν τη λήψη αποφάσεων" />
                 <TextField label="Υπάρχουν συγκεκριμένες λειτουργίες ή απαιτήσεις;" name="specificRequirements" value={formData.specificRequirements} onChange={handleChange} multiline={true} placeholder="Περιγράψτε τυχόν συγκεκριμένες λειτουργίες ή απαιτήσεις" />
@@ -596,7 +576,7 @@ export default function CustomerEvaluationForm(): JSX.Element {
                   onChange={handleChange} 
                   placeholder="Εισάγετε τον μοναδικό κωδικό πελάτη" 
                 />
-              </FormSection>
+                </FormSection>
             </div>
             
             <div className="flex justify-between max-w-3xl mx-auto mb-8">
@@ -624,14 +604,12 @@ export default function CustomerEvaluationForm(): JSX.Element {
               ) : (
                 <motion.button
                   onClick={handleSubmit}
-                  disabled={isSubmitting || recaptchaError !== null}
+                  disabled={isSubmitting}
                   className={`flex items-center justify-center py-3 px-6 rounded-md font-medium transition-colors ${
-                    !isSubmitting && recaptchaError === null 
-                      ? 'bg-blue-600 hover:bg-blue-500 text-white' 
-                      : 'bg-gray-700 text-gray-300 cursor-not-allowed'
+                    !isSubmitting ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-gray-700 text-gray-300 cursor-not-allowed'
                   }`}
-                  whileHover={!isSubmitting && recaptchaError === null ? { scale: 1.05 } : {}}
-                  whileTap={!isSubmitting && recaptchaError === null ? { scale: 0.95 } : {}}
+                  whileHover={!isSubmitting ? { scale: 1.05 } : {}}
+                  whileTap={!isSubmitting ? { scale: 0.95 } : {}}
                 >
                   {isSubmitting ? (
                     <span className="flex items-center">
@@ -650,25 +628,6 @@ export default function CustomerEvaluationForm(): JSX.Element {
                 </motion.button>
               )}
             </div>
-            
-            <div className="max-w-3xl mx-auto mb-8">
-              <ReCAPTCHA
-                ref={recaptchaRef}
-                size="invisible"
-                sitekey="6LfMVAcrAAAAACIdc9gO2_w8GrfX-6onRnMFyTlP"
-                onChange={handleRecaptchaChange}
-              />
-            </div>
-            
-            {recaptchaError && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="max-w-3xl mx-auto p-4 mb-8 bg-red-500 bg-opacity-20 border border-red-500 rounded-md text-red-500 text-center"
-              >
-                <span>{recaptchaError}</span>
-              </motion.div>
-            )}
             
             {submitSuccess && (
               <motion.div 
